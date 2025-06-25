@@ -1,0 +1,20 @@
+name: DCO Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main] # change if you protect more branches
+
+permissions:
+  contents: read # checkout
+  pull-requests: write # so the action can annotate the PR
+
+jobs:
+  dco:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # we need full history to inspect commits
+
+      # 1-liner wrapper around 'git log' that fails the job
+      - uses: tisonkun/actions-dco@v1.1 # open-source, MIT-style action:contentReference[oaicite:0]{index=0}
