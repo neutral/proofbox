@@ -9,7 +9,8 @@ On‑disk bytes must largely represent live data; amplification and waste must s
 
 ## Default Target
 
-Metric: ≥ 90 % of disk bytes are live versions; Pebble compaction < 5 % wall‑time.
+- Metric: ≥ 90 % of disk bytes are live versions.
+- Pebble compaction < 5 % wall‑time.
 
 ## Measurement
 

@@ -9,7 +9,12 @@ Documentation must be clear, complete, and co‑located with code.
 
 ## Default Target
 
-Metric: README passes `markdownlint`; every exported Go symbol has a top‑level doc string; docs/spec.md updated per release.
+Metric:
+
+- README passes `markdownlint`
+- Every exported Go symbol has a top‑level doc string
+- Code file is commented well
+- Each source file in the codebase is accompanied by a `.desc.md` file with the same filename capturing a high level description of what was acheived in the source file.
 
 ## Measurement
 
