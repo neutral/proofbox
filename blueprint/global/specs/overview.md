@@ -68,32 +68,32 @@ The detailed specifications have been organized alongside their corresponding fe
 
 ### Data Model Specifications
 
-- [features/storage/get/specs/node-types.md](../features/storage/get/specs/node-types.md) - Internal and Leaf node specifications
-- [features/metadata/versions/specs/versioned-keys.md](../features/metadata/versions/specs/versioned-keys.md) - NodeKey structure and versioning system
+- [features/storage/get/specs/node-types.md](../../features/storage/get/specs/node-types.md) - Internal and Leaf node specifications
+- [features/metadata/versions/specs/versioned-keys.md](../../features/metadata/versions/specs/versioned-keys.md) - NodeKey structure and versioning system
 
 ### Operation Specifications
 
-- [features/storage/get/specs/lookup-operation.md](../features/storage/get/specs/lookup-operation.md) - Query/lookup algorithm
-- [features/put-commit/specs/insert-update-operation.md](../features/put-commit/specs/insert-update-operation.md) - Insert and update operations
-- [features/storage/delete/specs/delete-operation.md](../features/storage/delete/specs/delete-operation.md) - Delete operation (incomplete)
+- [features/storage/get/specs/lookup-operation.md](../../features/storage/get/specs/lookup-operation.md) - Query/lookup algorithm
+- [features/put-commit/specs/insert-update-operation.md](../../features/put-commit/specs/insert-update-operation.md) - Insert and update operations
+- [features/storage/delete/specs/delete-operation.md](../../features/storage/delete/specs/delete-operation.md) - Delete operation (incomplete)
 
 ### Proof Specifications
 
-- [features/proof/generate/specs/proof-generation.md](../features/proof/generate/specs/proof-generation.md) - Proof generation algorithm
-- [features/proof/verify/specs/proof-verification.md](../features/proof/verify/specs/proof-verification.md) - Proof verification process
+- [features/proof/generate/specs/proof-generation.md](../../features/proof/generate/specs/proof-generation.md) - Proof generation algorithm
+- [features/proof/verify/specs/proof-verification.md](../../features/proof/verify/specs/proof-verification.md) - Proof verification process
 
 ### Performance & Storage Specifications
 
-- [performance/throughput/specs/lsm-optimization.md](performance/throughput/specs/lsm-optimization.md) - LSM storage optimization
-- [performance/latency/specs/proof-performance.md](performance/latency/specs/proof-performance.md) - Proof performance optimization
-- [storage/efficiency/specs/storage-efficiency.md](storage/efficiency/specs/storage-efficiency.md) - Storage efficiency design
+- [performance/throughput/specs/lsm-optimization.md](../performance/throughput/specs/lsm-optimization.md) - LSM storage optimization
+- [performance/latency/specs/proof-performance.md](../performance/latency/specs/proof-performance.md) - Proof performance optimization
+- [storage/efficiency/specs/storage-efficiency.md](../storage/efficiency/specs/storage-efficiency.md) - Storage efficiency design
 
 ### System Design Specifications
 
-- [scalability/capacity/specs/scalability-design.md](scalability/capacity/specs/scalability-design.md) - Scalability architecture
-- [reliability/crash-safety/specs/persistence-reliability.md](reliability/crash-safety/specs/persistence-reliability.md) - Persistence and reliability
-- [security/integrity/specs/cryptographic-integrity.md](security/integrity/specs/cryptographic-integrity.md) - Cryptographic integrity
-- [features/metadata/versions/specs/versioning-system.md](../features/metadata/versions/specs/versioning-system.md) - Versioning system details
+- [scalability/capacity/specs/scalability-design.md](../scalability/capacity/specs/scalability-design.md) - Scalability architecture
+- [reliability/crash-safety/specs/persistence-reliability.md](../reliability/crash-safety/specs/persistence-reliability.md) - Persistence and reliability
+- [security/integrity/specs/cryptographic-integrity.md](../security/integrity/specs/cryptographic-integrity.md) - Cryptographic integrity
+- [features/metadata/versions/specs/versioning-system.md](../../features/metadata/versions/specs/versioning-system.md) - Versioning system details
 
 ## Scope & Assumptions
 
