@@ -2,11 +2,12 @@
 
 ## Executive Summary
 
-The Jellyfish Merkle Tree (JMT) is an **authenticated, sparse Merkle tree** optimized for storing blockchain state in key-value databases. It was originally developed for Facebook's Diem (Libra) blockchain to balance **space efficiency, computational overhead, and I/O performance**. 
+The Jellyfish Merkle Tree (JMT) is an **authenticated, sparse Merkle tree** optimized for storing blockchain state in key-value databases. It was originally developed for Facebook's Diem (Libra) blockchain to balance **space efficiency, computational overhead, and I/O performance**.
 
-The JMT draws inspiration from Ethereum's Patricia Merkle Tree (PMT) but introduces _key innovations_ in **node design, key schema, and proof structure** to better suit a **log-structured merge (LSM) storage engine** (e.g. RocksDB). 
+The JMT draws inspiration from Ethereum's Patricia Merkle Tree (PMT) but introduces _key innovations_ in **node design, key schema, and proof structure** to better suit a **log-structured merge (LSM) storage engine** (e.g. RocksDB).
 
 In essence, JMT combines a **16-ary Radix Merkle Tree** structure with **sparse Merkle optimizations** and a **versioned node key scheme**. This design enables:
+
 - High throughput updates (minimal compaction overhead on disk)
 - Relatively short proof sizes
 - The ability to persist multiple historical versions of the state efficiently (persisted snapshots)
@@ -28,25 +29,32 @@ By using only two node types (internal and leaf) and eliminating certain complex
 ## Core Concepts
 
 ### Authenticated Key-Value Store (AKVS)
+
 The JMT acts as an authenticated data structure that binds a set of key-value pairs to a single root hash (state commitment). A Merkle tree allows any client to verify that a given key maps to a given value (or is absent) in the committed state by supplying a _Merkle proof_. This fits the blockchain need for cryptographic state verification.
 
 ### Addressable Merkle Tree (AMT)
+
 An AMT is a deterministic authenticated structure (usually a Merkle tree) that can store and map arbitrary binary keys to values. Each leaf in an AMT corresponds to a key-value pair, and the path from root to a leaf is determined by the bits of the key. This contrasts with UTXO-style Merkle trees (which index outputs by position) – in an AMT the key itself acts as the address within the tree. (see [SN-002])
 
 ### Radix Merkle Tree (AR<sub>r</sub>MT)
-A Radix Merkle Tree generalizes the binary Merkle tree to an _r_-ary tree (branching factor _r_ > 2). Instead of each node having 2 children (for each bit), a node can have up to _r_ children, effectively compressing multiple bits of the key into a single tree level. 
+
+A Radix Merkle Tree generalizes the binary Merkle tree to an _r_-ary tree (branching factor _r_ > 2). Instead of each node having 2 children (for each bit), a node can have up to _r_ children, effectively compressing multiple bits of the key into a single tree level.
 
 The JMT specifically uses _r = 16_ (a hexary tree), so each tree level covers 4 bits (a "nibble") of the key. The choice of _r = 16_ in JMT is a compromise balancing read and write costs (see [SN-003]).
 
 ### Sparse Merkle Tree (SMT)
+
 A sparse Merkle tree conceptually represents the full binary trie of height _h_ (for _h_-bit keys) but avoids explicitly storing empty subtrees. A sparse Merkle tree optimizes by:
+
 - Treating any _absent_ subtree as a constant default value (with a well-known hash)
 - Collapsing any branch that leads to a single leaf
 
 The JMT leverages sparseness: empty subtrees are not stored, and if a branch would have only one leaf, that leaf is linked directly to its highest branching ancestor. (see [SN-004])
 
 ### Jellyfish Merkle Tree (JMT)
+
 The JMT can be viewed as a **Sparse Addressable Radix-16 Merkle Tree**. It inherits:
+
 - AMT property (key-determined paths)
 - 16-way branching factor (each node covers 4 bits of the key)
 - Sparse optimizations (default placeholders and leaf compression)
@@ -59,28 +67,33 @@ This combination achieves effectively _zero compaction_ overhead for new state w
 The detailed specifications have been organized alongside their corresponding features:
 
 ### Data Model Specifications
-- [features/storage/get/spec/node-types.md](../features/storage/get/spec/node-types.md) - Internal and Leaf node specifications
-- [features/metadata/versions/spec/versioned-keys.md](../features/metadata/versions/spec/versioned-keys.md) - NodeKey structure and versioning system
+
+- [features/storage/get/specs/node-types.md](../features/storage/get/specs/node-types.md) - Internal and Leaf node specifications
+- [features/metadata/versions/specs/versioned-keys.md](../features/metadata/versions/specs/versioned-keys.md) - NodeKey structure and versioning system
 
 ### Operation Specifications
-- [features/storage/get/spec/lookup-operation.md](../features/storage/get/spec/lookup-operation.md) - Query/lookup algorithm
-- [features/put-commit/spec/insert-update-operation.md](../features/put-commit/spec/insert-update-operation.md) - Insert and update operations
-- [features/storage/delete/spec/delete-operation.md](../features/storage/delete/spec/delete-operation.md) - Delete operation (incomplete)
+
+- [features/storage/get/specs/lookup-operation.md](../features/storage/get/specs/lookup-operation.md) - Query/lookup algorithm
+- [features/put-commit/specs/insert-update-operation.md](../features/put-commit/specs/insert-update-operation.md) - Insert and update operations
+- [features/storage/delete/specs/delete-operation.md](../features/storage/delete/specs/delete-operation.md) - Delete operation (incomplete)
 
 ### Proof Specifications
-- [features/proof/generate/spec/proof-generation.md](../features/proof/generate/spec/proof-generation.md) - Proof generation algorithm
-- [features/proof/verify/spec/proof-verification.md](../features/proof/verify/spec/proof-verification.md) - Proof verification process
+
+- [features/proof/generate/specs/proof-generation.md](../features/proof/generate/specs/proof-generation.md) - Proof generation algorithm
+- [features/proof/verify/specs/proof-verification.md](../features/proof/verify/specs/proof-verification.md) - Proof verification process
 
 ### Performance & Storage Specifications
-- [performance/throughput/spec/lsm-optimization.md](performance/throughput/spec/lsm-optimization.md) - LSM storage optimization
-- [performance/latency/spec/proof-performance.md](performance/latency/spec/proof-performance.md) - Proof performance optimization
-- [storage/efficiency/spec/storage-efficiency.md](storage/efficiency/spec/storage-efficiency.md) - Storage efficiency design
+
+- [performance/throughput/specs/lsm-optimization.md](performance/throughput/specs/lsm-optimization.md) - LSM storage optimization
+- [performance/latency/specs/proof-performance.md](performance/latency/specs/proof-performance.md) - Proof performance optimization
+- [storage/efficiency/specs/storage-efficiency.md](storage/efficiency/specs/storage-efficiency.md) - Storage efficiency design
 
 ### System Design Specifications
-- [scalability/capacity/spec/scalability-design.md](scalability/capacity/spec/scalability-design.md) - Scalability architecture
-- [reliability/crash-safety/spec/persistence-reliability.md](reliability/crash-safety/spec/persistence-reliability.md) - Persistence and reliability
-- [security/integrity/spec/cryptographic-integrity.md](security/integrity/spec/cryptographic-integrity.md) - Cryptographic integrity
-- [features/metadata/versions/spec/versioning-system.md](../features/metadata/versions/spec/versioning-system.md) - Versioning system details
+
+- [scalability/capacity/specs/scalability-design.md](scalability/capacity/specs/scalability-design.md) - Scalability architecture
+- [reliability/crash-safety/specs/persistence-reliability.md](reliability/crash-safety/specs/persistence-reliability.md) - Persistence and reliability
+- [security/integrity/specs/cryptographic-integrity.md](security/integrity/specs/cryptographic-integrity.md) - Cryptographic integrity
+- [features/metadata/versions/specs/versioning-system.md](../features/metadata/versions/specs/versioning-system.md) - Versioning system details
 
 ## Scope & Assumptions
 
@@ -107,21 +120,21 @@ The following table maps key concepts in the specifications to the supporting so
 
 | Concept or Feature                     | Relevant Snippet IDs |
 | -------------------------------------- | -------------------- |
-| Addressable Merkle Tree (AMT)          | [SN-002]            |
-| Radix Merkle Tree (branching factor)   | [SN-003]            |
-| Sparse Merkle Tree (default/empty)     | [SN-004]            |
-| JMT = Sparse AR16 Merkle (definition)  | [SN-005]            |
-| Version-based node keys & benefits     | [SN-005], [SN-015]  |
-| Two node types (no extension node)     | [SN-006], [SN-014]  |
-| Concise proof (fewer siblings)         | [SN-007]            |
-| Persistent versioning (delta updates)  | [SN-010]            |
-| NodeKey structure (version + path)     | [SN-008], [SN-009]  |
-| Internal node structure (children)     | [SN-011]            |
-| Leaf node structure (key, blob hash)   | [SN-011]            |
-| Insertion logic (new leaf/internal)    | [SN-012]            |
-| Update logic (replace leaf value)      | [SN-013]            |
-| Removal of extension nodes (rationale) | [SN-014]            |
-| LSM-tree optimization (compaction)     | [SN-015]            |
+| Addressable Merkle Tree (AMT)          | [SN-002]             |
+| Radix Merkle Tree (branching factor)   | [SN-003]             |
+| Sparse Merkle Tree (default/empty)     | [SN-004]             |
+| JMT = Sparse AR16 Merkle (definition)  | [SN-005]             |
+| Version-based node keys & benefits     | [SN-005], [SN-015]   |
+| Two node types (no extension node)     | [SN-006], [SN-014]   |
+| Concise proof (fewer siblings)         | [SN-007]             |
+| Persistent versioning (delta updates)  | [SN-010]             |
+| NodeKey structure (version + path)     | [SN-008], [SN-009]   |
+| Internal node structure (children)     | [SN-011]             |
+| Leaf node structure (key, blob hash)   | [SN-011]             |
+| Insertion logic (new leaf/internal)    | [SN-012]             |
+| Update logic (replace leaf value)      | [SN-013]             |
+| Removal of extension nodes (rationale) | [SN-014]             |
+| LSM-tree optimization (compaction)     | [SN-015]             |
 
 ## Source Snippets
 
@@ -156,6 +169,7 @@ The following table maps key concepts in the specifications to the supporting so
 "The new tree reuses unchanged portions generated at previous versions, forming a persistent data structure. If an update modifies m out of n leaves, on average O(m ⋅ log n) new nodes are created..."
 
 **[SN-011]**: _Libra Core implementation structures (Rust) for Node, InternalNode, LeafNode, Child._
+
 ```rust
 pub struct NodeKey {
     version: Version,

@@ -1,5 +1,8 @@
 .cursor/
 .cursorrules
 .claude/
+
 .DS_Store
+
 .repomix/
+repomix-output.txt
