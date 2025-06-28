@@ -1,6 +1,41 @@
 # ProofBox
 
-proofbox implements the jellyfish merkle tree
+ProofBox is a Go implementation of the Jellyfish Merkle Tree (JMT), a space-efficient sparse Merkle tree with support for versioned key-value storage and cryptographic proofs.
+
+## Features
+
+- **Versioned Storage**: Track multiple versions of key-value pairs
+- **Cryptographic Proofs**: Generate and verify inclusion/exclusion proofs
+- **Space Efficient**: Optimized storage using sparse tree techniques
+- **High Performance**: Designed for low-latency operations
+- **Production Ready**: Comprehensive testing and benchmarking
+
+## Quick Start
+
+```bash
+# Build the project
+make
+
+# Run tests
+make test
+
+# Run linting
+make lint
+```
+
+## Project Structure
+
+```
+├── cmd/proofbox/    # CLI application
+├── pkg/             # Public packages
+│   ├── crypto/      # Cryptographic functions
+│   ├── proof/       # Proof generation/verification
+│   ├── storage/     # Storage abstraction
+│   ├── tree/        # Core tree implementation
+│   └── types/       # Common types
+├── internal/        # Internal packages
+└── blueprint/       # Design specifications
+```
 
 ## Quick tips for developers
 
