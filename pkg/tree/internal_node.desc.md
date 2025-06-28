@@ -16,6 +16,12 @@ Branching nodes in the JMT that can have up to 16 children (one per nibble). For
 - **Cache Invalidation**: Any child modification invalidates hash cache
 - **GetOnlyChild**: Optimization helper for single-child nodes
 
+## Mutability Pattern
+- **Mutable Methods**: `SetChild()`, `RemoveChild()` modify the node in-place
+- **Immutable Pattern**: Use `Clone(newVersion)` to create a new node with modifications
+- **Usage**: During tree updates, clone nodes along the path from leaf to root
+- **Thread Safety**: Mutable operations are protected by write locks
+
 ## Thread Safety
 - RWMutex protects both children map and cached hash
 - Children() returns defensive copy

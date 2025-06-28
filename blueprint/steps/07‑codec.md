@@ -61,9 +61,8 @@ func DecodeLeafNode(data []byte, leaf *LeafNode) error {
     // Decode value hash
     copy(leaf.ValueHash[:], data[32:64])
     
-    // Clear cached fields
-    leaf.digest = nil
-    leaf.version = 0
+    // Note: Nodes are immutable - cached fields should be handled
+    // by the constructor when creating the node instance
     
     return nil
 }
@@ -85,14 +84,14 @@ func LeafNodeSize() int {
 // Total per child: 42 bytes
 
 // EncodeInternalNode serializes an internal node to bytes
-func EncodeInternalNode(node *InternalNode) []byte {
+func EncodeInternalNode(node *InternalNode) ([]byte, error) {
     if node == nil {
-        return nil
+        return nil, nil
     }
     
     numChildren := len(node.Children)
     if numChildren > 16 {
-        panic(fmt.Sprintf("too many children: %d", numChildren))
+        return nil, fmt.Errorf("invalid internal node: too many children (%d > 16)", numChildren)
     }
     
     // Calculate buffer size
@@ -131,7 +130,7 @@ func EncodeInternalNode(node *InternalNode) []byte {
         offset++
     }
     
-    return buf[:offset]
+    return buf[:offset], nil
 }
 
 // DecodeInternalNode deserializes an internal node from bytes
@@ -186,9 +185,8 @@ func DecodeInternalNode(data []byte, node *InternalNode) error {
         }
     }
     
-    // Clear cached fields
-    node.digest = nil
-    node.version = 0
+    // Note: Nodes are immutable - cached fields should be handled
+    // by the constructor when creating the node instance
     
     return nil
 }
@@ -221,7 +219,10 @@ func (c *NodeCodec) EncodeNode(node Node) ([]byte, error) {
         return result, nil
         
     case *InternalNode:
-        data := EncodeInternalNode(n)
+        data, err := EncodeInternalNode(n)
+        if err != nil {
+            return nil, err
+        }
         // Prepend type byte
         result := make([]byte, 1+len(data))
         result[0] = byte(NodeTypeInternal)
@@ -377,7 +378,10 @@ func TestInternalNodeCodec(t *testing.T) {
     })
     
     // Encode
-    data := EncodeInternalNode(original)
+    data, err := EncodeInternalNode(original)
+    if err != nil {
+        t.Fatalf("Failed to encode: %v", err)
+    }
     expectedSize := 1 + 2*42 // 1 byte count + 2 children
     if len(data) != expectedSize {
         t.Errorf("Wrong encoded size: %d, expected %d", len(data), expectedSize)
@@ -423,8 +427,14 @@ func TestDeterministicEncoding(t *testing.T) {
     }
     
     // Encode multiple times
-    encoding1 := EncodeInternalNode(node)
-    encoding2 := EncodeInternalNode(node)
+    encoding1, err1 := EncodeInternalNode(node)
+    if err1 != nil {
+        t.Fatalf("First encoding failed: %v", err1)
+    }
+    encoding2, err2 := EncodeInternalNode(node)
+    if err2 != nil {
+        t.Fatalf("Second encoding failed: %v", err2)
+    }
     
     // Should be identical
     if !bytes.Equal(encoding1, encoding2) {

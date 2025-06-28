@@ -15,6 +15,11 @@ Terminal nodes in the JMT that store actual key-value mappings. Each leaf repres
 - SetValue() validates hash before accepting value
 - Maximum value size: 1MB to prevent DoS
 
+## Mutability Pattern
+- **SetValue()**: Used only for loading values from storage, validates hash
+- **Immutable Updates**: Leaf nodes are replaced entirely during tree updates
+- **Thread Safety**: SetValue is not thread-safe by design (called during loading)
+
 ## Performance
 - Hash computation cached after first calculation
 - Benchmarks show ~1μs for uncached hash computation

@@ -1,8 +1,6 @@
 ---
-id: step.07.node‑iface
+id: step.06.node‑iface
 depends_on:
-  - step.05.leaf
-  - step.06.internal
 tags: [structs, step]
 ---
 
@@ -28,33 +26,37 @@ type Node interface {
     Type() NodeType       // Returns NodeTypeLeaf or NodeTypeInternal
     IsLeaf() bool         // True for leaf nodes, false for internal
     Hash() Hash           // Returns the digest/hash of this node
-    
+
     // Version tracking
     Version() Version     // Version when this node was created
-    SetVersion(Version)   // Set the version for this node
-    
-    // Serialization hint
-    SerializeHint() int   // Estimated serialized size in bytes
+    // Note: No SetVersion - nodes are immutable, use Clone() for new versions
+
+    // Cache status
+    IsCached() bool       // Returns true if hash is already computed
 }
 
 // NodeType identifies the type of node
 type NodeType byte
 
 const (
-    NodeTypeLeaf     NodeType = 0x00
-    NodeTypeInternal NodeType = 0x01
+    NodeTypeInternal NodeType = 0x00
+    NodeTypeLeaf     NodeType = 0x01
 )
+
+// Note: IsLeaf() is implemented as a helper function rather than an interface method
+// This keeps the Node interface minimal and allows checking node types without casting
 ```
 
 ### Extended Node Operations
 
 ```go
-// NodeWithChildren interface for nodes that can have children
+// NodeWithChildren interface for nodes that can have children (read-only)
 type NodeWithChildren interface {
     Node
-    GetChild(nibble Nibble) (ChildMeta, bool)
-    SetChild(nibble Nibble, child ChildMeta) error
-    NumChildren() int
+    Child(nibble Nibble) (Child, bool)  // Get child at nibble
+    Children() map[Nibble]Child         // Get all children (defensive copy)
+    NumChildren() int                   // Count of non-empty children
+    GetOnlyChild() (Nibble, Child, bool) // For single-child optimization
 }
 
 // NodeWithKey interface for nodes that have a key
@@ -63,10 +65,10 @@ type NodeWithKey interface {
     Key() Key
 }
 
-// NodeCloneable interface for nodes that can be cloned
+// NodeCloneable interface for creating new versions of nodes
 type NodeCloneable interface {
     Node
-    Clone() Node
+    Clone(newVersion Version) Node  // Creates new node with different version
 }
 ```
 
@@ -85,22 +87,22 @@ func AsInternal(n Node) (*InternalNode, bool) {
     return internal, ok
 }
 
-// MustLeaf panics if node is not a leaf
-func MustLeaf(n Node) *LeafNode {
+// AsLeafErr returns an error if node is not a leaf
+func AsLeafErr(n Node) (*LeafNode, error) {
     leaf, ok := n.(*LeafNode)
     if !ok {
-        panic(fmt.Sprintf("expected leaf node, got %T", n))
+        return nil, fmt.Errorf("expected leaf node, got %T", n)
     }
-    return leaf
+    return leaf, nil
 }
 
-// MustInternal panics if node is not internal
-func MustInternal(n Node) *InternalNode {
+// AsInternalErr returns an error if node is not internal
+func AsInternalErr(n Node) (*InternalNode, error) {
     internal, ok := n.(*InternalNode)
     if !ok {
-        panic(fmt.Sprintf("expected internal node, got %T", n))
+        return nil, fmt.Errorf("expected internal node, got %T", n)
     }
-    return internal
+    return internal, nil
 }
 ```
 
@@ -116,32 +118,32 @@ func NewNode(nodeType NodeType, data []byte) (Node, error) {
             return nil, fmt.Errorf("failed to decode leaf: %w", err)
         }
         return &leaf, nil
-        
+
     case NodeTypeInternal:
         var internal InternalNode
         if err := DecodeInternalNode(data, &internal); err != nil {
             return nil, fmt.Errorf("failed to decode internal: %w", err)
         }
         return &internal, nil
-        
+
     default:
         return nil, fmt.Errorf("unknown node type: %d", nodeType)
     }
 }
 
-// CloneNode creates a deep copy of any node
-func CloneNode(n Node) Node {
+// CloneNode creates a deep copy of any node with a new version
+func CloneNode(n Node, newVersion Version) (Node, error) {
     if n == nil {
-        return nil
+        return nil, nil
     }
-    
+
     switch node := n.(type) {
     case *LeafNode:
-        return node.Clone()
+        return node.Clone(newVersion), nil
     case *InternalNode:
-        return node.Clone()
+        return node.Clone(newVersion), nil
     default:
-        panic(fmt.Sprintf("unknown node type: %T", n))
+        return nil, fmt.Errorf("unknown node type: %T", n)
     }
 }
 ```
@@ -160,37 +162,37 @@ func TraverseToLeaf(root Node, key Key) (*LeafNode, NodePath, error) {
     if root == nil {
         return nil, NodePath{}, ErrEmptyTree
     }
-    
+
     nibblePath := KeyToNibblePath(key)
     path := NodePath{
         Nibbles: make([]Nibble, 0, MaxTreeDepth),
     }
-    
+
     current := root
     for depth := 0; depth < MaxTreeDepth; depth++ {
         if leaf, ok := current.(*LeafNode); ok {
             path.Depth = depth
             return leaf, path, nil
         }
-        
+
         internal, ok := current.(*InternalNode)
         if !ok {
             return nil, path, fmt.Errorf("invalid node type at depth %d", depth)
         }
-        
+
         nibble := nibblePath[depth]
         path.Nibbles = append(path.Nibbles, nibble)
-        
-        child, exists := internal.GetChild(nibble)
+
+        child, exists := internal.Child(nibble)
         if !exists {
             path.Depth = depth
             return nil, path, ErrKeyNotFound
         }
-        
+
         // Load child node (would involve storage in real implementation)
         // current = loadNode(child.Hash)
     }
-    
+
     return nil, path, ErrMaxDepthExceeded
 }
 
@@ -207,25 +209,26 @@ func CountNodes(node Node, loader NodeLoader) (int, error) {
     if node == nil {
         return 0, nil
     }
-    
+
     count := 1 // Count this node
-    
+
     if internal, ok := node.(*InternalNode); ok {
-        for _, child := range internal.Children {
+        children := internal.Children()
+        for _, child := range children {
             childNode, err := loader.LoadNode(child.Hash)
             if err != nil {
                 return 0, err
             }
-            
+
             childCount, err := CountNodes(childNode, loader)
             if err != nil {
                 return 0, err
             }
-            
+
             count += childCount
         }
     }
-    
+
     return count, nil
 }
 ```
@@ -259,14 +262,14 @@ type NodePrinter struct {
 
 func (p *NodePrinter) VisitLeaf(leaf *LeafNode) error {
     indent := strings.Repeat("  ", p.Depth)
-    fmt.Fprintf(p.Writer, "%sLeaf: key=%x, value_hash=%x\n", 
-        indent, leaf.Key, leaf.ValueHash)
+    fmt.Fprintf(p.Writer, "%sLeaf: key=%x, value_hash=%x\n",
+        indent, leaf.Key(), leaf.ValueHash())
     return nil
 }
 
 func (p *NodePrinter) VisitInternal(internal *InternalNode) error {
     indent := strings.Repeat("  ", p.Depth)
-    fmt.Fprintf(p.Writer, "%sInternal: %d children\n", 
+    fmt.Fprintf(p.Writer, "%sInternal: %d children\n",
         indent, internal.NumChildren())
     return nil
 }
@@ -308,32 +311,32 @@ func TestNodeInterface(t *testing.T) {
         Key:       KeyHash([]byte("test")),
         ValueHash: Hash{0x01, 0x02, /* ... */},
     }
-    leaf.SetVersion(100)
-    
+    // Version is set during creation, not via setter
+    leaf = NewLeafNode(key, value, 100)
+
     if leaf.Type() != NodeTypeLeaf {
         t.Error("Wrong type for leaf")
     }
-    if !leaf.IsLeaf() {
+    if !IsLeaf(leaf) {
         t.Error("IsLeaf should return true")
     }
     if leaf.Version() != 100 {
         t.Error("Version not set correctly")
     }
-    
+
     // Test internal node
-    internal := NewInternalNode()
-    internal.SetVersion(200)
-    
+    internal := NewInternalNode(200)
+
     if internal.Type() != NodeTypeInternal {
         t.Error("Wrong type for internal")
     }
-    if internal.IsLeaf() {
-        t.Error("IsLeaf should return false")
+    if IsLeaf(internal) {
+        t.Error("IsLeaf should return false for internal nodes")
     }
     if internal.Version() != 200 {
         t.Error("Version not set correctly")
     }
-    
+
     // Test polymorphic usage
     nodes := []Node{leaf, internal}
     for _, node := range nodes {
@@ -344,7 +347,7 @@ func TestNodeInterface(t *testing.T) {
 func TestTypeConversions(t *testing.T) {
     leaf := &LeafNode{}
     internal := &InternalNode{}
-    
+
     // Test AsLeaf
     if l, ok := AsLeaf(leaf); !ok || l != leaf {
         t.Error("AsLeaf failed for leaf node")
@@ -352,7 +355,7 @@ func TestTypeConversions(t *testing.T) {
     if _, ok := AsLeaf(internal); ok {
         t.Error("AsLeaf should fail for internal node")
     }
-    
+
     // Test AsInternal
     if _, ok := AsInternal(leaf); ok {
         t.Error("AsInternal should fail for leaf node")
@@ -373,7 +376,7 @@ func TestTypeConversions(t *testing.T) {
 ## Security Notes
 
 - **Type safety**: Interface prevents mixing node types incorrectly
-- **Immutability**: Interface doesn't expose mutation methods
+- **Immutability**: No mutation methods (no SetVersion, SetChild, etc.)
 - **Version tracking**: All nodes track their creation version
 - **No nil receiver**: Methods should handle nil gracefully
 

@@ -303,11 +303,11 @@ func (p NibblePath) CommonPrefixLength(other NibblePath) int {
     return minLen
 }
 
-func (p NibblePath) GetNibble(index int) Nibble {
-    if index >= len(p.nibbles) {
-        panic("nibble index out of bounds")
+func (p NibblePath) GetNibble(index int) (Nibble, error) {
+    if index < 0 || index >= len(p.nibbles) {
+        return 0, fmt.Errorf("nibble index %d out of bounds [0, %d)", index, len(p.nibbles))
     }
-    return p.nibbles[index]
+    return p.nibbles[index], nil
 }
 
 func (p NibblePath) Prefix(length int) NibblePath {

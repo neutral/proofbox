@@ -260,15 +260,15 @@ func KeyToNibblePath(key Key) []Nibble {
 }
 
 // NibblePathToPartialKey converts nibbles back to partial key bytes
-func NibblePathToPartialKey(nibbles []Nibble) []byte {
+func NibblePathToPartialKey(nibbles []Nibble) ([]byte, error) {
     if len(nibbles)%2 != 0 {
-        panic("odd number of nibbles")
+        return nil, fmt.Errorf("invalid nibble path: odd number of nibbles (%d)", len(nibbles))
     }
     
     bytes := make([]byte, len(nibbles)/2)
     for i := 0; i < len(bytes); i++ {
         bytes[i] = byte(nibbles[i*2])<<4 | byte(nibbles[i*2+1])
     }
-    return bytes
+    return bytes, nil
 }
 ```
