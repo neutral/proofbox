@@ -1,5 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+@genkit/claude/memory/memory.desc.md contains all memories.
 
-See [genkit/claude/memory/memory.desc.md](genkit/claude/memory/memory.desc.md) for detailed project information.
+Add to the @genkit/claude/memory folder.
