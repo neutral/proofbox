@@ -59,7 +59,9 @@ linters-settings:
 run:
   timeout: 10m
   tests: true
-  skip-dirs:
+
+issues:
+  exclude-dirs:
     - vendor
     - genkit
     - blueprint

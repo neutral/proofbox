@@ -169,11 +169,11 @@ var EmptyTreeHash = types.Hash{
 
 ## Done When ✓
 
-- [ ] `Hasher` interface defined with Hash, HashConcat, EmptyHash methods
-- [ ] `DefaultSHA256` implementation complete
-- [ ] `DefaultDigest` constant defined
-- [ ] Unit test asserts `DefaultDigest == sha256.Sum256(nil)`
-- [ ] Hash type with Equal, String, Bytes methods
-- [ ] Interface allows swapping hash functions
-- [ ] Benchmarks for hash operations
-- [ ] Documentation comments for all public APIs
+- [x] `Hasher` interface defined with Hash, HashConcat, EmptyHash methods
+- [x] `DefaultSHA256` implementation complete
+- [x] `DefaultDigest` constant defined
+- [x] Unit test asserts `DefaultDigest == sha256.Sum256(nil)`
+- [x] Hash type with Equal, String, Bytes methods
+- [x] Interface allows swapping hash functions
+- [x] Benchmarks for hash operations
+- [x] Documentation comments for all public APIs
