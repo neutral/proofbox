@@ -20,6 +20,7 @@ Implement LeafNode and InternalNode types as the only two node types in the Jell
 ### Node Interface
 
 Create `pkg/tree/node.go`:
+
 ```go
 package tree
 
@@ -40,13 +41,13 @@ const (
 type Node interface {
     // Type returns the node type
     Type() NodeType
-    
+
     // Hash computes and returns the node's hash
     Hash() types.Hash
-    
+
     // IsCached returns true if the hash is already computed
     IsCached() bool
-    
+
     // Version returns the version when this node was created
     Version() types.Version
 }
@@ -67,12 +68,13 @@ func (c Child) IsEmpty() bool {
 ### Leaf Node Implementation
 
 Create `pkg/tree/leaf_node.go`:
+
 ```go
 package tree
 
 import (
     "sync"
-    
+
     "github.com/acme/jmt/pkg/crypto"
     "github.com/acme/jmt/pkg/types"
 )
@@ -83,7 +85,7 @@ type LeafNode struct {
     valueHash types.Hash   // Hash of the value
     value     []byte       // The actual value (may be nil if not loaded)
     version   types.Version
-    
+
     // Cache
     mu         sync.RWMutex
     cachedHash *types.Hash
@@ -94,13 +96,13 @@ func NewLeafNode(key types.Key, value []byte, version types.Version) (*LeafNode,
     if err := types.ValidateKey(key); err != nil {
         return nil, err
     }
-    
+
     if len(value) > types.MaxValueSize {
         return nil, types.ErrValueTooLarge
     }
-    
+
     valueHash := crypto.DefaultHasher.Hash(value)
-    
+
     return &LeafNode{
         key:       key,
         valueHash: valueHash,
@@ -123,19 +125,19 @@ func (n *LeafNode) Hash() types.Hash {
         return *n.cachedHash
     }
     n.mu.RUnlock()
-    
+
     // Compute hash
     hash := crypto.DefaultHasher.HashConcat(
         []byte{byte(NodeTypeLeaf)},
         n.key[:],
         n.valueHash[:],
     )
-    
+
     // Cache it
     n.mu.Lock()
     n.cachedHash = &hash
     n.mu.Unlock()
-    
+
     return hash
 }
 
@@ -179,13 +181,14 @@ func (n *LeafNode) SetValue(value []byte) error {
 ### Internal Node Implementation
 
 Create `pkg/tree/internal_node.go`:
+
 ```go
 package tree
 
 import (
     "sort"
     "sync"
-    
+
     "github.com/acme/jmt/pkg/crypto"
     "github.com/acme/jmt/pkg/types"
 )
@@ -194,7 +197,7 @@ import (
 type InternalNode struct {
     children map[types.Nibble]Child // Sparse array of children
     version  types.Version
-    
+
     // Cache
     mu         sync.RWMutex
     cachedHash *types.Hash
@@ -223,10 +226,10 @@ func (n *InternalNode) Hash() types.Hash {
         return *n.cachedHash
     }
     n.mu.RUnlock()
-    
+
     // Build parts for hashing
     parts := [][]byte{{byte(NodeTypeInternal)}}
-    
+
     // Process all 16 possible children in order
     for nibble := types.Nibble(0); nibble <= types.MaxNibbleValue; nibble++ {
         if child, exists := n.children[nibble]; exists {
@@ -238,14 +241,14 @@ func (n *InternalNode) Hash() types.Hash {
             parts = append(parts, crypto.EmptyTreeHash[:])
         }
     }
-    
+
     hash := crypto.DefaultHasher.HashConcat(parts...)
-    
+
     // Cache it
     n.mu.Lock()
     n.cachedHash = &hash
     n.mu.Unlock()
-    
+
     return hash
 }
 
@@ -274,10 +277,10 @@ func (n *InternalNode) SetChild(nibble types.Nibble, child Child) error {
     if err := types.ValidateNibble(nibble); err != nil {
         return err
     }
-    
+
     n.mu.Lock()
     defer n.mu.Unlock()
-    
+
     n.children[nibble] = child
     n.cachedHash = nil // Invalidate cache
     return nil
@@ -287,7 +290,7 @@ func (n *InternalNode) SetChild(nibble types.Nibble, child Child) error {
 func (n *InternalNode) RemoveChild(nibble types.Nibble) {
     n.mu.Lock()
     defer n.mu.Unlock()
-    
+
     delete(n.children, nibble)
     n.cachedHash = nil // Invalidate cache
 }
@@ -303,7 +306,7 @@ func (n *InternalNode) NumChildren() int {
 func (n *InternalNode) Children() map[types.Nibble]Child {
     n.mu.RLock()
     defer n.mu.RUnlock()
-    
+
     result := make(map[types.Nibble]Child)
     for k, v := range n.children {
         result[k] = v
@@ -315,11 +318,11 @@ func (n *InternalNode) Children() map[types.Nibble]Child {
 func (n *InternalNode) GetOnlyChild() (types.Nibble, Child, bool) {
     n.mu.RLock()
     defer n.mu.RUnlock()
-    
+
     if len(n.children) != 1 {
         return 0, Child{}, false
     }
-    
+
     for nibble, child := range n.children {
         return nibble, child, true
     }
@@ -330,16 +333,16 @@ func (n *InternalNode) GetOnlyChild() (types.Nibble, Child, bool) {
 func (n *InternalNode) Clone(newVersion types.Version) *InternalNode {
     n.mu.RLock()
     defer n.mu.RUnlock()
-    
+
     clone := &InternalNode{
         children: make(map[types.Nibble]Child),
         version:  newVersion,
     }
-    
+
     for k, v := range n.children {
         clone.children[k] = v
     }
-    
+
     return clone
 }
 ```
@@ -347,6 +350,7 @@ func (n *InternalNode) Clone(newVersion types.Version) *InternalNode {
 ### Node Creation Helpers
 
 Add to `pkg/tree/node.go`:
+
 ```go
 // IsLeaf checks if a node is a leaf
 func IsLeaf(n Node) bool {
@@ -374,22 +378,23 @@ func AsInternal(n Node) (*InternalNode, bool) {
 ## Testing Requirements
 
 ### Leaf Node Tests
+
 ```go
 func TestLeafNodeHash(t *testing.T) {
     key := types.KeyHash([]byte("test-key"))
     value := []byte("test-value")
-    
+
     leaf, err := NewLeafNode(key, value, 1)
     assert.NoError(t, err)
-    
+
     // Hash should be deterministic
     hash1 := leaf.Hash()
     hash2 := leaf.Hash()
     assert.Equal(t, hash1, hash2)
-    
+
     // Hash should be cached
     assert.True(t, leaf.IsCached())
-    
+
     // Hash format: 0x01 || key || valueHash
     valueHash := crypto.DefaultHasher.Hash(value)
     expected := crypto.DefaultHasher.HashConcat(
@@ -402,12 +407,12 @@ func TestLeafNodeHash(t *testing.T) {
 
 func TestLeafNodeValueValidation(t *testing.T) {
     key := types.KeyHash([]byte("test"))
-    
+
     // Test value too large
     largeValue := make([]byte, types.MaxValueSize+1)
     _, err := NewLeafNode(key, largeValue, 1)
     assert.ErrorIs(t, err, types.ErrValueTooLarge)
-    
+
     // Test empty key
     _, err = NewLeafNode(types.Key{}, []byte("value"), 1)
     assert.ErrorIs(t, err, types.ErrEmptyKey)
@@ -415,20 +420,21 @@ func TestLeafNodeValueValidation(t *testing.T) {
 ```
 
 ### Internal Node Tests
+
 ```go
 func TestInternalNodeHash(t *testing.T) {
     node := NewInternalNode(1)
-    
+
     // Empty internal node should use empty hashes for all children
     hash := node.Hash()
-    
+
     parts := [][]byte{{0x00}} // NodeTypeInternal
     for i := 0; i < 16; i++ {
         parts = append(parts, crypto.EmptyTreeHash[:])
     }
     expected := crypto.DefaultHasher.HashConcat(parts...)
     assert.Equal(t, expected, hash)
-    
+
     // Add a child
     childHash := crypto.DefaultHasher.Hash([]byte("child"))
     err := node.SetChild(5, Child{
@@ -437,7 +443,7 @@ func TestInternalNodeHash(t *testing.T) {
         IsLeaf:  true,
     })
     assert.NoError(t, err)
-    
+
     // Hash should change
     newHash := node.Hash()
     assert.NotEqual(t, hash, newHash)
@@ -445,7 +451,7 @@ func TestInternalNodeHash(t *testing.T) {
 
 func TestInternalNodeChildren(t *testing.T) {
     node := NewInternalNode(1)
-    
+
     // Add multiple children
     for i := types.Nibble(0); i < 5; i++ {
         child := Child{
@@ -456,18 +462,18 @@ func TestInternalNodeChildren(t *testing.T) {
         err := node.SetChild(i, child)
         assert.NoError(t, err)
     }
-    
+
     assert.Equal(t, 5, node.NumChildren())
-    
+
     // Test child retrieval
     child, exists := node.Child(3)
     assert.True(t, exists)
     assert.True(t, child.IsLeaf)
-    
+
     // Test non-existent child
     _, exists = node.Child(10)
     assert.False(t, exists)
-    
+
     // Test clone
     clone := node.Clone(2)
     assert.Equal(t, types.Version(2), clone.Version())
@@ -501,13 +507,73 @@ func TestInternalNodeChildren(t *testing.T) {
 
 ## Done When ✓
 
-- [ ] Node interface with required methods
-- [ ] LeafNode implementation with value management
-- [ ] InternalNode implementation with sparse children
-- [ ] Thread-safe hash caching
-- [ ] Helper functions for type assertions
-- [ ] Comprehensive unit tests for both node types
-- [ ] Hash computation follows specification exactly
-- [ ] No extension nodes (only Leaf and Internal)
-- [ ] Benchmarks show acceptable performance
-- [ ] Race detector passes
+- [x] Node interface with required methods
+- [x] LeafNode implementation with value management
+- [x] InternalNode implementation with sparse children
+- [x] Thread-safe hash caching
+- [x] Helper functions for type assertions
+- [x] Comprehensive unit tests for both node types
+- [x] Hash computation follows specification exactly
+- [x] No extension nodes (only Leaf and Internal)
+- [x] Benchmarks show acceptable performance
+- [x] Race detector passes
+
+## Testing with Gore (Go REPL)
+
+### Quick Verification Commands
+
+```bash
+# Start gore in project directory
+cd /path/to/proofbox
+gore
+```
+
+### Essential Checks
+
+```go
+// 1. Verify EmptyHash vs EmptyTreeHash distinction
+:import "github.com/neutral/proofbox/pkg/types"
+:import "github.com/neutral/proofbox/pkg/crypto"
+:import "fmt"
+fmt.Printf("types.EmptyHash():    %x\n", types.EmptyHash())
+fmt.Printf("crypto.EmptyTreeHash: %x\n", crypto.EmptyTreeHash)
+fmt.Printf("Are they equal? %v\n", types.EmptyHash() == crypto.EmptyTreeHash)
+
+// 2. Test node creation
+:import "github.com/neutral/proofbox/pkg/tree"
+key := types.KeyHash([]byte("test"))
+leaf, _ := tree.NewLeafNode(key, []byte("value"), 1)
+internal := tree.NewInternalNode(1)
+fmt.Printf("Leaf type: %v, Internal type: %v\n", leaf.Type(), internal.Type())
+
+// 3. Verify hash computation
+leafHash := leaf.Hash()
+fmt.Printf("Leaf hash first byte: 0x%02x (SHA-256 output, not the 0x01 input)\n", leafHash[0])
+fmt.Printf("Is cached? %v\n", leaf.IsCached())
+
+// 4. Test child management
+child := tree.Child{Hash: leafHash, Version: 1, IsLeaf: true}
+internal.SetChild(5, child)
+fmt.Printf("Children count: %v\n", internal.NumChildren())
+
+// 5. Verify clone functionality
+clone := internal.Clone(10)
+fmt.Printf("Clone version: %v, Original: %v\n", clone.Version(), internal.Version())
+
+// 6. Check value size limit
+bigValue := make([]byte, types.MaxValueSize+1)
+_, err := tree.NewLeafNode(key, bigValue, 1)
+fmt.Printf("Big value error: %v\n", err)
+```
+
+### Performance Verification
+
+```bash
+# Run benchmarks
+go test -bench=. -benchmem ./pkg/tree/...
+
+# Expected results:
+# BenchmarkLeafNodeHash (cached): ~5-6ns
+# BenchmarkLeafNodeHashUncached: ~278ns
+# BenchmarkInternalNodeHashUncached: ~1.97μs
+```

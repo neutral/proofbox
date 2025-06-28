@@ -188,4 +188,3 @@ func EncodeVersion(v Version) [8]byte {
 func DecodeVersion(buf [8]byte) Version {
 	return Version(binary.BigEndian.Uint64(buf[:]))
 }
-

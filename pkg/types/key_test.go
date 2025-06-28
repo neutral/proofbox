@@ -295,4 +295,3 @@ func BenchmarkKeyToNibblePath(b *testing.B) {
 		_ = key.ToNibblePath()
 	}
 }
-

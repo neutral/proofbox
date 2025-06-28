@@ -445,4 +445,3 @@ func BenchmarkNodeKeyCompare(b *testing.B) {
 		_ = key1.Compare(key2)
 	}
 }
-

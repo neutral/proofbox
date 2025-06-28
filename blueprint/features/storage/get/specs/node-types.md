@@ -67,3 +67,46 @@ The absence of extension nodes (unlike Ethereum's PMT) was deliberate (see [SN-0
 - In large sparse trees, the chance of two leaves sharing long common prefixes is rare
 - Removing extension nodes contributes to less complicated code and fewer potential bugs
 - The simplicity outweighs any minor space savings from extension nodes
+
+## Implementation Requirements
+
+### Thread Safety
+All node types must be thread-safe for concurrent access:
+- Use `sync.RWMutex` for protecting mutable state (cached hashes, children map)
+- Hash computation must be deterministic regardless of concurrent access
+- Child modifications must atomically invalidate parent hash caches
+- Read operations should not block each other (use RLock)
+
+### Memory Optimization
+
+#### Sparse Representation
+- Internal nodes use `map[Nibble]Child` instead of fixed arrays
+- Empty children are not stored, saving memory in sparse trees
+- Hash computation uses EmptyTreeHash for missing children
+
+#### Hash Caching
+- Computed hashes are cached to avoid recomputation
+- Cache invalidation on any mutation ensures consistency
+- Thread-safe access to cached values
+
+#### Lazy Value Loading
+- Leaf nodes support nil values with separate value storage
+- Values loaded on-demand via SetValue() with hash verification
+- See [Lazy Loading Specification](./lazy-loading.md) for details
+
+### Deterministic Behavior
+
+#### Hash Computation
+- Internal nodes process children in nibble order (0x0 to 0xF)
+- Hash format: `NodeType || child0 || child1 || ... || child15`
+- Empty children contribute EmptyTreeHash to maintain fixed size
+
+#### Cloning for Versioning
+- Clone() creates new node instance with updated version
+- Structural sharing: cloned nodes share immutable child references
+- Enables efficient copy-on-write semantics
+
+### Size Limits
+- Maximum value size: 1MB (MaxValueSize = 1 << 20)
+- Enforced at leaf node creation
+- Prevents DoS attacks via large value storage

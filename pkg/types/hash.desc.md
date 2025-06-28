@@ -64,6 +64,12 @@ The zero value of `Hash` is a valid hash (all zeros), which is why we provide:
 - `EmptyHash()` - Explicitly returns the zero hash
 - `IsEmpty()` - Checks if a hash is the zero value
 
+**Important**: This zero hash is different from `crypto.EmptyTreeHash`:
+- `EmptyHash()` = `[0x00, 0x00, ...]` - Used for null/uninitialized checks
+- `crypto.EmptyTreeHash` = `[0x5b, 0xa9, ...]` - Sentinel for sparse Merkle trees
+
+This distinction prevents confusion between "no hash" and "hash of empty subtree".
+
 ## Performance Considerations
 
 - **Stack Allocation**: As a 32-byte array, `Hash` can often be stack-allocated

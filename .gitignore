@@ -7,6 +7,8 @@
 .repomix/
 repomix-output.txt
 
+.vscode/
+
 # Go specific
 *.exe
 *.exe~

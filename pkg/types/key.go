@@ -22,7 +22,8 @@ const (
 	KeySize        = 32 // 256 bits
 	NibblePerByte  = 2
 	MaxNibbleValue = 15
-	MaxTreeDepth   = 64 // 32 bytes * 2 nibbles per byte
+	MaxTreeDepth   = 64      // 32 bytes * 2 nibbles per byte
+	MaxValueSize   = 1 << 20 // 1 MB maximum value size
 )
 
 // KeyFromBytes creates a Key from byte slice
@@ -138,4 +139,3 @@ func (np NibblePath) Compare(other NibblePath) int {
 
 	return 0
 }
-

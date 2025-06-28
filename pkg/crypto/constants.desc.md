@@ -17,6 +17,13 @@ var EmptyTreeHash = types.Hash{
 ### Purpose
 `EmptyTreeHash` is a **sentinel value** representing empty/non-existent nodes in the sparse Merkle tree structure.
 
+### Important Distinction
+This is different from `types.EmptyHash()` which returns a zero hash (all 0x00 bytes):
+- `types.EmptyHash()` - Used for null checks (e.g., `Child.IsEmpty()`)
+- `crypto.EmptyTreeHash` - Used in hash computations for missing children
+
+This separation ensures type safety and prevents accidental misuse.
+
 ### Why Not Use SHA-256("")?
 
 This is a critical design decision. We intentionally use a different value than `DefaultDigest` (SHA-256 of empty string) because:

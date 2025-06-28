@@ -27,13 +27,19 @@ type Hash [32]byte
 // HashValue is an alias for Hash for compatibility
 type HashValue = Hash
 
-// EmptyHash is the hash of an empty/null node
+// EmptyHash is the hash of an empty/null node in sparse Merkle trees
+// This is a special sentinel value, NOT the hash of empty data
 var EmptyHash = Hash{
     0x5b, 0xa9, 0x3c, 0x9d, 0xb0, 0xcf, 0xf9, 0x3f,
     0x52, 0xb5, 0x21, 0xd7, 0x81, 0x4c, 0x7f, 0xa0,
     0x8a, 0xbe, 0x86, 0x13, 0x5f, 0x74, 0x6b, 0x46,
     0x68, 0xb0, 0x13, 0xbc, 0xd1, 0xc4, 0x8e, 0x9b,
 }
+
+// Implementation Notes:
+// - May be named EmptyTreeHash in crypto package for clarity
+// - Different from zero hash (all 0x00 bytes) used for null checks
+// - Represents infinite empty subtree in sparse Merkle tree theory
 ```
 
 ### Key
