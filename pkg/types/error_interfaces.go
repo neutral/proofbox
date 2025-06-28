@@ -5,24 +5,7 @@ import (
 	"time"
 )
 
-// Note: NodeKey and Version types will be defined in future steps.
-// For now, we'll define placeholder types to make the interfaces compile.
-// These will be replaced when the actual types are implemented.
-
-// NodeKey represents a key for a node in the tree (placeholder)
-type NodeKey struct {
-	Version    Version
-	NibblePath NibblePath
-}
-
-// Version represents a version number (placeholder)
-type Version uint64
-
-// NibblePath represents a path of nibbles in the tree (placeholder)
-type NibblePath struct {
-	Nibbles []byte
-	Length  uint16
-}
+// Note: NodeKey, Version, and NibblePath types are now defined in nodekey.go and key.go
 
 // ReadErrorHandler defines recovery strategy for read errors
 // Concrete implementations will be provided in step 8 with tree implementation

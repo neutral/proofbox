@@ -440,13 +440,13 @@ func FuzzNodeKeyEncoding(f *testing.F) {
 
 ## Done When ✓
 
-- [ ] Key type with validation and utilities
-- [ ] Nibble extraction with bounds checking
-- [ ] NibblePath with comparison operations
-- [ ] NodeKey structure with version support
-- [ ] Binary encoding/decoding with proper error handling
-- [ ] Storage key generation for PebbleDB
-- [ ] Comprehensive unit tests with edge cases
-- [ ] Fuzz tests for encoding robustness
-- [ ] Benchmarks showing acceptable performance
-- [ ] All types properly documented
+- [x] Key type with validation and utilities
+- [x] Nibble extraction with bounds checking
+- [x] NibblePath with comparison operations
+- [x] NodeKey structure with version support
+- [x] Binary encoding/decoding with proper error handling
+- [x] Storage key generation for PebbleDB
+- [x] Comprehensive unit tests with edge cases
+- [x] Fuzz tests for encoding robustness
+- [x] Benchmarks showing acceptable performance
+- [x] All types properly documented
