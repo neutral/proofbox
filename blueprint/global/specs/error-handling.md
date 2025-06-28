@@ -3,6 +3,10 @@
 ## Overview
 This specification defines the error handling strategy for the Jellyfish Merkle Tree implementation, including error types, codes, recovery strategies, and consistency guarantees.
 
+**Implementation Note**: The error handling is implemented in two phases:
+- **Step 3**: Core error types, utilities, and interfaces (in `pkg/types`)
+- **Step 8**: Concrete handler implementations when tree structure is available (in `pkg/tree`)
+
 ## Error Categories
 
 ### 1. Data Integrity Errors

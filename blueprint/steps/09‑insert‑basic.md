@@ -2,7 +2,7 @@
 id: step.10.insert‑basic
 depends_on:
   - step.09.tree‑skeleton
-  - step.03.key‑util
+  - step.03.error-handling
 tags: [insert, step]
 ---
 

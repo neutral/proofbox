@@ -356,6 +356,161 @@ func makeValueKey(version Version, hash Hash) []byte {
 }
 ```
 
+### Error Handler Implementations
+
+Create `pkg/tree/error_handlers.go`:
+```go
+package tree
+
+import (
+    "log"
+    "math/rand"
+    "time"
+    
+    "github.com/neutral/proofbox/pkg/types"
+)
+
+// DefaultReadErrorHandler implements basic recovery
+type DefaultReadErrorHandler struct {
+    logger *log.Logger
+}
+
+func NewDefaultReadErrorHandler(logger *log.Logger) *DefaultReadErrorHandler {
+    return &DefaultReadErrorHandler{logger: logger}
+}
+
+func (h *DefaultReadErrorHandler) HandleCorruptedNode(key types.NodeKey, err error) error {
+    h.logger.Printf("ERROR: Corrupted node detected at version=%d path=%x: %v",
+        key.Version, key.NibblePath.Nibbles, err)
+    
+    // Don't try to recover - return error to caller
+    return types.ErrCorruptedNode
+}
+
+func (h *DefaultReadErrorHandler) HandleMissingNode(key types.NodeKey) error {
+    // Missing nodes might be due to pruning
+    h.logger.Printf("WARN: Missing node at version=%d path=%x",
+        key.Version, key.NibblePath.Nibbles)
+    return types.ErrNodeNotFound
+}
+
+// DefaultWriteErrorHandler implements exponential backoff
+type DefaultWriteErrorHandler struct {
+    maxRetries int
+    baseDelay  time.Duration
+    logger     *log.Logger
+}
+
+func NewDefaultWriteErrorHandler(maxRetries int, baseDelay time.Duration, logger *log.Logger) *DefaultWriteErrorHandler {
+    return &DefaultWriteErrorHandler{
+        maxRetries: maxRetries,
+        baseDelay:  baseDelay,
+        logger:     logger,
+    }
+}
+
+func (h *DefaultWriteErrorHandler) HandleWriteFailure(err error) error {
+    h.logger.Printf("ERROR: Write failure: %v", err)
+    return types.WrapError(err, "write operation failed")
+}
+
+func (h *DefaultWriteErrorHandler) ShouldRetry(err error) bool {
+    return types.IsRetryable(err)
+}
+
+func (h *DefaultWriteErrorHandler) RetryDelay(attempt int) time.Duration {
+    // Exponential backoff with jitter
+    delay := h.baseDelay * time.Duration(1<<uint(attempt))
+    // Add up to 25% jitter
+    jitter := time.Duration(float64(delay) * 0.25 * rand.Float64())
+    return delay + jitter
+}
+```
+
+### Health Check Implementation
+
+Create `pkg/tree/health.go`:
+```go
+package tree
+
+import (
+    "bytes"
+    "context"
+    
+    "github.com/neutral/proofbox/pkg/types"
+)
+
+// TreeHealthChecker verifies tree integrity
+type TreeHealthChecker struct {
+    tree *Tree
+}
+
+// NewTreeHealthChecker creates a new health checker
+func NewTreeHealthChecker(tree *Tree) *TreeHealthChecker {
+    return &TreeHealthChecker{tree: tree}
+}
+
+// VerifyIntegrity performs comprehensive integrity check
+func (hc *TreeHealthChecker) VerifyIntegrity(ctx context.Context, version types.Version) error {
+    // Start from root
+    rootKey := types.RootNodeKey(version)
+    visited := make(map[types.NodeKey]bool)
+    
+    return hc.verifyNode(ctx, rootKey, visited)
+}
+
+func (hc *TreeHealthChecker) verifyNode(ctx context.Context, key types.NodeKey, visited map[types.NodeKey]bool) error {
+    // Check context cancellation
+    select {
+    case <-ctx.Done():
+        return ctx.Err()
+    default:
+    }
+    
+    // Avoid cycles
+    if visited[key] {
+        return nil
+    }
+    visited[key] = true
+    
+    // Load node
+    data, err := hc.tree.storage.Get(key.StorageKey())
+    if err != nil {
+        return types.WrapError(err, "failed to load node at %s", key)
+    }
+    
+    // Verify node integrity
+    node, err := DecodeNode(data)
+    if err != nil {
+        return types.WrapError(err, "failed to decode node at %s", key)
+    }
+    
+    // Verify hash matches content
+    computed := node.Hash()
+    stored := node.GetStoredHash()
+    
+    if !bytes.Equal(computed[:], stored[:]) {
+        return types.NewErrorInfo(types.CodeCorruption, types.ErrHashMismatch, map[string]interface{}{
+            "node_key": key,
+            "computed": computed.String(),
+            "stored":   stored.String(),
+        })
+    }
+    
+    // Recursively verify children
+    if internal, ok := node.(*InternalNode); ok {
+        for nibble, child := range internal.Children {
+            childKey := key.Child(nibble, child.Version)
+            if err := hc.verifyNode(ctx, childKey, visited); err != nil {
+                return err
+            }
+        }
+    }
+    
+    return nil
+}
+```
+
 ## Implementation Steps
 
 1. **Define Tree struct**: Storage, version tracking, concurrency primitives
@@ -364,6 +519,8 @@ func makeValueKey(version Version, hash Hash) []byte {
 4. **Create TreeReader**: Snapshot-based consistent reads
 5. **Add helper methods**: Version queries, root hash access
 6. **Implement caching**: Node cache integration
+7. **Implement error handlers**: DefaultReadErrorHandler and DefaultWriteErrorHandler from step 3 interfaces
+8. **Create health checker**: TreeHealthChecker implementing the HealthChecker interface
 
 ## Testing Requirements
 
@@ -438,6 +595,36 @@ func TestTreeInitialization(t *testing.T) {
 }
 ```
 
+### Error Handler Tests
+
+```go
+func TestWriteRetryWithBackoff(t *testing.T) {
+    handler := NewDefaultWriteErrorHandler(3, 100*time.Millisecond, log.New(io.Discard, "", 0))
+    
+    // Test exponential backoff
+    for i := 0; i < 3; i++ {
+        delay := handler.RetryDelay(i)
+        expected := 100 * time.Millisecond * time.Duration(1<<uint(i))
+        
+        // Allow for jitter (up to 25%)
+        assert.InDelta(t, expected, delay, float64(expected)*0.3)
+    }
+}
+
+func TestDefaultReadErrorHandler(t *testing.T) {
+    handler := NewDefaultReadErrorHandler(log.New(io.Discard, "", 0))
+    
+    // Test corrupted node handling
+    key := types.NodeKey{Version: 1, NibblePath: types.NibblePath{Nibbles: []byte{0x1, 0x2}}}
+    err := handler.HandleCorruptedNode(key, errors.New("test corruption"))
+    assert.Equal(t, types.ErrCorruptedNode, err)
+    
+    // Test missing node handling
+    err = handler.HandleMissingNode(key)
+    assert.Equal(t, types.ErrNodeNotFound, err)
+}
+```
+
 ## Performance Considerations
 
 - **Snapshot isolation**: Each read creates lightweight snapshot
@@ -462,4 +649,7 @@ func TestTreeInitialization(t *testing.T) {
 - [ ] Node cache integration for performance
 - [ ] Thread-safe version management
 - [ ] Helper methods for version and root hash queries
+- [ ] DefaultReadErrorHandler and DefaultWriteErrorHandler implemented
+- [ ] TreeHealthChecker implementing HealthChecker interface
+- [ ] Error handler tests with retry logic validation
 - [ ] 100% test coverage for empty tree cases
