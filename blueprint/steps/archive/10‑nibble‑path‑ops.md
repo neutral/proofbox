@@ -389,14 +389,72 @@ func BenchmarkNibblePathConversion(b *testing.B) {
 - Consider caching common prefix lengths for repeated comparisons
 - Optimize for the common case of full 64-nibble paths
 
+## Testing Instructions
+
+### Running Tests
+
+```bash
+# Run all nibble path tests
+go test ./pkg/types -run "TestCommonPrefixLength|TestGetNibble|TestPrefix|TestEquals|TestAppend|TestIsPrefix|TestSkip|TestNibblePathConversion|TestNewNibblePathFromKey" -v
+
+# Run all NodeKey path tests  
+go test ./pkg/types -run "TestNodeKeyWithPath|TestNodeKeyExtendPath|TestNodeKeyParentKey|TestNodeKeyDepth|TestNodeKeyConsistencyWithChild|TestNodeKeyNavigationRoundTrip|TestNodeKeyPathOperationsWithEncoding" -v
+
+# Run with coverage
+go test ./pkg/types -cover
+
+# Run benchmarks
+go test ./pkg/types -bench="BenchmarkCommonPrefixLength|BenchmarkNibblePathConversion|BenchmarkAppend|BenchmarkPrefix|BenchmarkSkip" -run=^$
+go test ./pkg/types -bench="BenchmarkNodeKeyExtendPath|BenchmarkNodeKeyParentKey|BenchmarkNodeKeyDepth" -run=^$
+
+# Full test suite with coverage report
+go test ./pkg/types -v -coverprofile=coverage.out
+go tool cover -html=coverage.out -o coverage.html
+
+# Run with race detector
+go test -race ./pkg/types
+
+# Run specific test with verbose output
+go test ./pkg/types -run TestCommonPrefixLength -v
+
+# Run tests multiple times to ensure stability
+go test -count=10 ./pkg/types
+```
+
+### Expected Results
+
+1. **Unit Tests**: All tests should pass, covering:
+   - Path comparison edge cases (empty, identical, different lengths)
+   - Bounds checking for GetNibble
+   - Immutability of operations
+   - Round-trip conversions (bytes ↔ nibbles)
+   - Parent/child navigation consistency
+
+2. **Benchmarks**: Operations should complete in:
+   - CommonPrefixLength: ~17ns
+   - Append/Prefix/Skip: ~15ns
+   - NodeKey operations: 15-20ns
+   - Depth check: <1ns
+
+3. **Coverage**: Should maintain ≥98% coverage for new code
+
+### Verification Checklist
+
+- [ ] `go test ./pkg/types -v` shows all tests passing
+- [ ] Coverage report shows ≥98% for key.go and nodekey.go
+- [ ] Benchmarks run without errors
+- [ ] No race conditions: `go test -race ./pkg/types`
+- [ ] No memory leaks in benchmarks
+- [ ] Documentation files created (*.desc.md)
+
 ## Done When ✓
 
-- [ ] CommonPrefixLength correctly finds divergence point
-- [ ] GetNibble performs bounds checking
-- [ ] Prefix creates proper sub-paths
-- [ ] Append efficiently extends paths
-- [ ] NodeKey path operations maintain consistency
-- [ ] Conversion between bytes and nibbles is bidirectional
-- [ ] All edge cases tested (empty paths, boundary conditions)
-- [ ] Performance benchmarks show efficient operations
-- [ ] 100% test coverage for new methods
+- [x] CommonPrefixLength correctly finds divergence point
+- [x] GetNibble performs bounds checking
+- [x] Prefix creates proper sub-paths
+- [x] Append efficiently extends paths
+- [x] NodeKey path operations maintain consistency
+- [x] Conversion between bytes and nibbles is bidirectional
+- [x] All edge cases tested (empty paths, boundary conditions)
+- [x] Performance benchmarks show efficient operations
+- [x] 100% test coverage for new methods

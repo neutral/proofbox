@@ -188,3 +188,36 @@ func EncodeVersion(v Version) [8]byte {
 func DecodeVersion(buf [8]byte) Version {
 	return Version(binary.BigEndian.Uint64(buf[:]))
 }
+
+// WithPath returns a new NodeKey with the specified path
+func (nk NodeKey) WithPath(path NibblePath) NodeKey {
+	return NodeKey{
+		Version:    nk.Version,
+		NibblePath: path,
+	}
+}
+
+// ExtendPath returns a new NodeKey with nibble appended to path
+func (nk NodeKey) ExtendPath(nibble Nibble) NodeKey {
+	return NodeKey{
+		Version:    nk.Version,
+		NibblePath: nk.NibblePath.Append(nibble),
+	}
+}
+
+// ParentKey returns the NodeKey of this node's parent
+func (nk NodeKey) ParentKey() (NodeKey, error) {
+	if nk.NibblePath.Length == 0 {
+		return NodeKey{}, fmt.Errorf("root node has no parent")
+	}
+
+	return NodeKey{
+		Version:    nk.Version,
+		NibblePath: nk.NibblePath.Prefix(int(nk.NibblePath.Length) - 1),
+	}, nil
+}
+
+// Depth returns the depth of this node in the tree
+func (nk NodeKey) Depth() int {
+	return int(nk.NibblePath.Length)
+}

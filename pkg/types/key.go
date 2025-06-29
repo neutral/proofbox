@@ -139,3 +139,133 @@ func (np NibblePath) Compare(other NibblePath) int {
 
 	return 0
 }
+
+// CommonPrefixLength returns the number of matching nibbles from the start
+func (np NibblePath) CommonPrefixLength(other NibblePath) int {
+	minLen := np.Length
+	if other.Length < minLen {
+		minLen = other.Length
+	}
+
+	for i := uint16(0); i < minLen; i++ {
+		if np.Nibbles[i] != other.Nibbles[i] {
+			return int(i)
+		}
+	}
+	return int(minLen)
+}
+
+// GetNibble returns the nibble at the specified index with bounds checking
+func (np NibblePath) GetNibble(index int) (Nibble, error) {
+	if index < 0 || index >= int(np.Length) {
+		return 0, fmt.Errorf("nibble index %d out of bounds [0, %d)", index, np.Length)
+	}
+	return np.Nibbles[index], nil
+}
+
+// Prefix returns a new NibblePath containing the first 'length' nibbles
+func (np NibblePath) Prefix(length int) NibblePath {
+	if length <= 0 {
+		return NibblePath{Nibbles: []Nibble{}, Length: 0}
+	}
+
+	if length > int(np.Length) {
+		length = int(np.Length)
+	}
+
+	newNibbles := make([]Nibble, length)
+	copy(newNibbles, np.Nibbles[:length])
+
+	return NibblePath{
+		Nibbles: newNibbles,
+		Length:  uint16(length),
+	}
+}
+
+// Equals returns true if two nibble paths are identical
+func (np NibblePath) Equals(other NibblePath) bool {
+	if np.Length != other.Length {
+		return false
+	}
+
+	for i := uint16(0); i < np.Length; i++ {
+		if np.Nibbles[i] != other.Nibbles[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Append returns a new NibblePath with the given nibble appended
+func (np NibblePath) Append(nibble Nibble) NibblePath {
+	newNibbles := make([]Nibble, np.Length+1)
+	copy(newNibbles, np.Nibbles)
+	newNibbles[np.Length] = nibble
+
+	return NibblePath{
+		Nibbles: newNibbles,
+		Length:  np.Length + 1,
+	}
+}
+
+// IsPrefix returns true if this path is a prefix of the other path
+func (np NibblePath) IsPrefix(other NibblePath) bool {
+	if np.Length > other.Length {
+		return false
+	}
+
+	for i := uint16(0); i < np.Length; i++ {
+		if np.Nibbles[i] != other.Nibbles[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Skip returns a new NibblePath with the first 'count' nibbles removed
+func (np NibblePath) Skip(count int) NibblePath {
+	if count >= int(np.Length) {
+		return NibblePath{Nibbles: []Nibble{}, Length: 0}
+	}
+
+	if count <= 0 {
+		return np
+	}
+
+	newLength := int(np.Length) - count
+	newNibbles := make([]Nibble, newLength)
+	copy(newNibbles, np.Nibbles[count:])
+
+	return NibblePath{
+		Nibbles: newNibbles,
+		Length:  uint16(newLength),
+	}
+}
+
+// NewNibblePath creates a NibblePath from a byte slice
+func NewNibblePath(data []byte) NibblePath {
+	nibbles := make([]Nibble, 0, len(data)*2)
+	for _, b := range data {
+		nibbles = append(nibbles, Nibble(b>>4), Nibble(b&0x0F))
+	}
+	return NibblePath{
+		Nibbles: nibbles,
+		Length:  uint16(len(nibbles)),
+	}
+}
+
+// ToBytes converts a NibblePath back to bytes (for even-length paths)
+func (np NibblePath) ToBytes() ([]byte, error) {
+	if np.Length%2 != 0 {
+		return nil, fmt.Errorf("cannot convert odd-length nibble path to bytes")
+	}
+
+	bytes := make([]byte, np.Length/2)
+	for i := 0; i < len(bytes); i++ {
+		high := np.Nibbles[i*2]
+		low := np.Nibbles[i*2+1]
+		bytes[i] = byte(high)<<4 | byte(low)
+	}
+
+	return bytes, nil
+}
