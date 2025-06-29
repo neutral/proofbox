@@ -22,10 +22,12 @@ Terminal nodes in the JMT that store actual key-value mappings. Each leaf repres
 - **Thread Safety**: SetValue is not thread-safe by design (called during loading)
 
 ## Interface Implementation
-- Implements `Node` interface (Type, Hash, IsCached, Version)
-- Implements `NodeWithKey` interface (Key accessor)
-- Implements `NodeCloneable` interface (Clone method)
+- Implements `types.Node` interface (Type, Hash, IsCached, Version)
+- Implements `types.NodeWithKey` interface (Key accessor)
+- Implements `types.NodeCloneable` interface (Clone method)
+- Implements `types.LeafNodeInterface` for full functionality
 - Compile-time interface checks ensure compliance
+- Interfaces defined in types package to avoid import cycles
 
 ## Performance
 - Hash computation cached after first calculation

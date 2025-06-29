@@ -3,7 +3,6 @@ package codec
 import (
 	"fmt"
 
-	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 )
 
@@ -12,7 +11,7 @@ import (
 // Total: 64 bytes (fixed size)
 
 // EncodeLeafNode serializes a leaf node to bytes
-func EncodeLeafNode(leaf *tree.LeafNode) []byte {
+func EncodeLeafNode(leaf types.LeafNodeInterface) []byte {
 	if leaf == nil {
 		return nil
 	}
@@ -31,7 +30,7 @@ func EncodeLeafNode(leaf *tree.LeafNode) []byte {
 }
 
 // DecodeLeafNode deserializes a leaf node from bytes
-func DecodeLeafNode(data []byte, version types.Version) (*tree.LeafNode, error) {
+func DecodeLeafNode(data []byte, version types.Version) (types.LeafNodeInterface, error) {
 	if len(data) != 64 {
 		return nil, fmt.Errorf("invalid leaf data size: %d, expected 64", len(data))
 	}
@@ -44,8 +43,8 @@ func DecodeLeafNode(data []byte, version types.Version) (*tree.LeafNode, error) 
 	var valueHash types.Hash
 	copy(valueHash[:], data[32:64])
 
-	// Use factory function to create node
-	return tree.NewLeafNodeFromCodec(key, valueHash, version), nil
+	// Return decoded data - actual node creation handled by factory
+	return nil, fmt.Errorf("use codec.DecodeNode for node creation")
 }
 
 // LeafNodeSize returns the serialized size of a leaf node

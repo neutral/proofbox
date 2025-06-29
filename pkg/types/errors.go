@@ -74,6 +74,12 @@ var (
 	ErrOutOfMemory = errors.New("jmt: out of memory")
 )
 
+// Validation Helper Errors
+var (
+	// ErrInvalidVersionRange indicates version is out of valid range
+	ErrInvalidVersionRange = errors.New("jmt: version exceeds maximum allowed value")
+)
+
 // Storage Errors
 var (
 	// ErrStorageFailure wraps underlying storage errors

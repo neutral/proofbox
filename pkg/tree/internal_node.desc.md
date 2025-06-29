@@ -17,10 +17,12 @@ Branching nodes in the JMT that can have up to 16 children (one per nibble). For
 - **GetOnlyChild**: Optimization helper for single-child nodes
 
 ## Interface Implementation
-- Implements `Node` interface (Type, Hash, IsCached, Version)
-- Implements `NodeWithChildren` interface (Child, Children, NumChildren, GetOnlyChild)
-- Implements `NodeCloneable` interface (Clone method returns Node interface)
+- Implements `types.Node` interface (Type, Hash, IsCached, Version)
+- Implements `types.NodeWithChildren` interface (Child, Children, NumChildren, GetOnlyChild)
+- Implements `types.NodeCloneable` interface (Clone method returns types.Node)
+- Implements `types.InternalNodeInterface` for full functionality
 - Compile-time interface checks ensure compliance
+- Interfaces defined in types package to avoid import cycles
 
 ## Mutability Pattern
 - **Mutable Methods**: `SetChild()`, `RemoveChild()` modify the node in-place

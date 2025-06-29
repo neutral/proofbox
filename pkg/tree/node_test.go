@@ -14,17 +14,17 @@ func TestNodeTypeHelpers(t *testing.T) {
 		version: 1,
 	}
 	internalNode := &InternalNode{
-		children: make(map[types.Nibble]Child),
+		children: make(map[types.Nibble]types.Child),
 		version:  1,
 	}
 
 	// Test IsLeaf
-	assert.True(t, IsLeaf(leafNode))
-	assert.False(t, IsLeaf(internalNode))
+	assert.True(t, types.IsLeaf(leafNode))
+	assert.False(t, types.IsLeaf(internalNode))
 
 	// Test IsInternal
-	assert.False(t, IsInternal(leafNode))
-	assert.True(t, IsInternal(internalNode))
+	assert.False(t, types.IsInternal(leafNode))
+	assert.True(t, types.IsInternal(internalNode))
 
 	// Test AsLeaf
 	leaf, ok := AsLeaf(leafNode)
@@ -47,11 +47,11 @@ func TestNodeTypeHelpers(t *testing.T) {
 
 func TestChildIsEmpty(t *testing.T) {
 	// Empty child
-	emptyChild := Child{}
+	emptyChild := types.Child{}
 	assert.True(t, emptyChild.IsEmpty())
 
 	// Non-empty child
-	nonEmptyChild := Child{
+	nonEmptyChild := types.Child{
 		Hash:    types.Hash(types.KeyHash([]byte("test"))), // Convert Key to Hash
 		Version: 1,
 		IsLeaf:  true,
@@ -61,8 +61,8 @@ func TestChildIsEmpty(t *testing.T) {
 
 func TestNodeInterface(t *testing.T) {
 	// Test that both node types implement the Node interface
-	var _ Node = (*LeafNode)(nil)
-	var _ Node = (*InternalNode)(nil)
+	var _ types.Node = (*LeafNode)(nil)
+	var _ types.Node = (*InternalNode)(nil)
 
 	// Create test nodes
 	leafNode, err := NewLeafNode(types.KeyHash([]byte("test")), []byte("value"), 1)
@@ -70,8 +70,8 @@ func TestNodeInterface(t *testing.T) {
 	internalNode := NewInternalNode(2)
 
 	// Test Type()
-	assert.Equal(t, NodeTypeLeaf, leafNode.Type())
-	assert.Equal(t, NodeTypeInternal, internalNode.Type())
+	assert.Equal(t, types.NodeTypeLeaf, leafNode.Type())
+	assert.Equal(t, types.NodeTypeInternal, internalNode.Type())
 
 	// Test Version()
 	assert.Equal(t, types.Version(1), leafNode.Version())

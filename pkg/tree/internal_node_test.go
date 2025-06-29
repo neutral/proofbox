@@ -18,7 +18,7 @@ func TestNewInternalNode(t *testing.T) {
 	assert.Equal(t, version, node.version)
 	assert.NotNil(t, node.children)
 	assert.Equal(t, 0, len(node.children))
-	assert.Equal(t, NodeTypeInternal, node.Type())
+	assert.Equal(t, types.NodeTypeInternal, node.Type())
 }
 
 func TestInternalNodeHash(t *testing.T) {
@@ -36,7 +36,7 @@ func TestInternalNodeHash(t *testing.T) {
 
 	// Add a child
 	childHash := crypto.DefaultHasher.Hash([]byte("child"))
-	err := node.SetChild(5, Child{
+	err := node.SetChild(5, types.Child{
 		Hash:    childHash,
 		Version: 1,
 		IsLeaf:  true,
@@ -59,7 +59,7 @@ func TestInternalNodeChildren(t *testing.T) {
 
 	// Add multiple children
 	for i := types.Nibble(0); i < 5; i++ {
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(i)}),
 			Version: 1,
 			IsLeaf:  true,
@@ -87,7 +87,7 @@ func TestInternalNodeChildren(t *testing.T) {
 	assert.Equal(t, node.NumChildren(), clone.NumChildren())
 
 	// Verify clone is independent
-	err := clone.SetChild(10, Child{
+	err := clone.SetChild(10, types.Child{
 		Hash:    crypto.DefaultHasher.Hash([]byte("new")),
 		Version: 2,
 		IsLeaf:  false,
@@ -101,7 +101,7 @@ func TestInternalNodeSetChild(t *testing.T) {
 	node := NewInternalNode(1)
 
 	// Valid nibble
-	child := Child{
+	child := types.Child{
 		Hash:    crypto.DefaultHasher.Hash([]byte("test")),
 		Version: 1,
 		IsLeaf:  true,
@@ -114,7 +114,7 @@ func TestInternalNodeSetChild(t *testing.T) {
 	assert.Error(t, err)
 
 	// Update existing child
-	newChild := Child{
+	newChild := types.Child{
 		Hash:    crypto.DefaultHasher.Hash([]byte("updated")),
 		Version: 2,
 		IsLeaf:  false,
@@ -132,7 +132,7 @@ func TestInternalNodeRemoveChild(t *testing.T) {
 
 	// Add some children
 	for i := types.Nibble(0); i < 3; i++ {
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(i)}),
 			Version: 1,
 			IsLeaf:  true,
@@ -163,7 +163,7 @@ func TestInternalNodeGetOnlyChild(t *testing.T) {
 	assert.False(t, ok)
 
 	// One child
-	child := Child{
+	child := types.Child{
 		Hash:    crypto.DefaultHasher.Hash([]byte("only")),
 		Version: 1,
 		IsLeaf:  true,
@@ -188,9 +188,9 @@ func TestInternalNodeGetChildren(t *testing.T) {
 	node := NewInternalNode(1)
 
 	// Add some children
-	expected := make(map[types.Nibble]Child)
+	expected := make(map[types.Nibble]types.Child)
 	for i := types.Nibble(0); i < 5; i++ {
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(i)}),
 			Version: types.Version(i),
 			IsLeaf:  i%2 == 0,
@@ -209,7 +209,7 @@ func TestInternalNodeGetChildren(t *testing.T) {
 	}
 
 	// Verify it's a copy (modifying returned map doesn't affect node)
-	children[10] = Child{Hash: types.EmptyHash()}
+	children[10] = types.Child{Hash: types.EmptyHash()}
 	assert.Equal(t, 5, node.NumChildren())
 }
 
@@ -221,7 +221,7 @@ func TestInternalNodeHashInvalidatesCache(t *testing.T) {
 	assert.True(t, node.IsCached())
 
 	// Add a child (should invalidate cache)
-	child := Child{
+	child := types.Child{
 		Hash:    crypto.DefaultHasher.Hash([]byte("test")),
 		Version: 1,
 		IsLeaf:  true,
@@ -246,7 +246,7 @@ func TestInternalNodeHashOrdering(t *testing.T) {
 	// Add children in non-sequential order
 	nibbles := []types.Nibble{15, 0, 7, 3, 11}
 	for _, n := range nibbles {
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(n)}),
 			Version: 1,
 			IsLeaf:  true,
@@ -262,7 +262,7 @@ func TestInternalNodeHashOrdering(t *testing.T) {
 	node2 := NewInternalNode(1)
 	for i := len(nibbles) - 1; i >= 0; i-- {
 		n := nibbles[i]
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(n)}),
 			Version: 1,
 			IsLeaf:  true,
@@ -281,7 +281,7 @@ func BenchmarkInternalNodeHash(b *testing.B) {
 
 	// Add some children
 	for i := types.Nibble(0); i < 10; i++ {
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(i)}),
 			Version: 1,
 			IsLeaf:  true,
@@ -299,7 +299,7 @@ func BenchmarkInternalNodeHashUncached(b *testing.B) {
 	// Create a template node
 	template := NewInternalNode(1)
 	for i := types.Nibble(0); i < 10; i++ {
-		child := Child{
+		child := types.Child{
 			Hash:    crypto.DefaultHasher.Hash([]byte{byte(i)}),
 			Version: 1,
 			IsLeaf:  true,

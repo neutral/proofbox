@@ -9,14 +9,14 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Node             = (*InternalNode)(nil)
-	_ NodeWithChildren = (*InternalNode)(nil)
-	_ NodeCloneable    = (*InternalNode)(nil)
+	_ types.Node               = (*InternalNode)(nil)
+	_ types.NodeWithChildren   = (*InternalNode)(nil)
+	_ types.NodeCloneable      = (*InternalNode)(nil)
 )
 
 // InternalNode represents an internal node with up to 16 children
 type InternalNode struct {
-	children map[types.Nibble]Child // Sparse array of children
+	children map[types.Nibble]types.Child // Sparse array of children
 	version  types.Version
 
 	// Cache
@@ -27,14 +27,14 @@ type InternalNode struct {
 // NewInternalNode creates a new internal node
 func NewInternalNode(version types.Version) *InternalNode {
 	return &InternalNode{
-		children: make(map[types.Nibble]Child),
+		children: make(map[types.Nibble]types.Child),
 		version:  version,
 	}
 }
 
 // Type returns NodeTypeInternal
-func (n *InternalNode) Type() NodeType {
-	return NodeTypeInternal
+func (n *InternalNode) Type() types.NodeType {
+	return types.NodeTypeInternal
 }
 
 // Hash computes the internal node hash
@@ -49,7 +49,7 @@ func (n *InternalNode) Hash() types.Hash {
 	n.mu.RUnlock()
 
 	// Build parts for hashing
-	parts := [][]byte{{byte(NodeTypeInternal)}}
+	parts := [][]byte{{byte(types.NodeTypeInternal)}}
 
 	// Process all 16 possible children in order
 	for nibble := types.Nibble(0); nibble <= types.MaxNibbleValue; nibble++ {
@@ -86,7 +86,7 @@ func (n *InternalNode) Version() types.Version {
 }
 
 // Child returns the child at the given nibble
-func (n *InternalNode) Child(nibble types.Nibble) (Child, bool) {
+func (n *InternalNode) Child(nibble types.Nibble) (types.Child, bool) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	child, exists := n.children[nibble]
@@ -94,7 +94,7 @@ func (n *InternalNode) Child(nibble types.Nibble) (Child, bool) {
 }
 
 // SetChild sets or updates a child
-func (n *InternalNode) SetChild(nibble types.Nibble, child Child) error {
+func (n *InternalNode) SetChild(nibble types.Nibble, child types.Child) error {
 	if err := types.ValidateNibble(nibble); err != nil {
 		return err
 	}
@@ -124,11 +124,11 @@ func (n *InternalNode) NumChildren() int {
 }
 
 // Children returns a copy of all children
-func (n *InternalNode) Children() map[types.Nibble]Child {
+func (n *InternalNode) Children() map[types.Nibble]types.Child {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 
-	result := make(map[types.Nibble]Child)
+	result := make(map[types.Nibble]types.Child)
 	for k, v := range n.children {
 		result[k] = v
 	}
@@ -136,27 +136,27 @@ func (n *InternalNode) Children() map[types.Nibble]Child {
 }
 
 // GetOnlyChild returns the single child if there's exactly one
-func (n *InternalNode) GetOnlyChild() (types.Nibble, Child, bool) {
+func (n *InternalNode) GetOnlyChild() (types.Nibble, types.Child, bool) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 
 	if len(n.children) != 1 {
-		return 0, Child{}, false
+		return 0, types.Child{}, false
 	}
 
 	for nibble, child := range n.children {
 		return nibble, child, true
 	}
-	return 0, Child{}, false
+	return 0, types.Child{}, false
 }
 
 // Clone creates a copy of the internal node with a new version
-func (n *InternalNode) Clone(newVersion types.Version) Node {
+func (n *InternalNode) Clone(newVersion types.Version) types.Node {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 
 	clone := &InternalNode{
-		children: make(map[types.Nibble]Child),
+		children: make(map[types.Nibble]types.Child),
 		version:  newVersion,
 	}
 

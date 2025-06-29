@@ -1,21 +1,18 @@
-# Node Interface
+# Node Helpers and Utilities
 
 ## Purpose
 
-Defines the core interface for all node types in the Jellyfish Merkle Tree. The JMT uses only two node types (Leaf and Internal) to maintain simplicity.
+Provides utility functions for working with nodes in the tree package. These helpers complement the node interfaces defined in the types package.
 
-## Design Decisions
+## Import Cycle Resolution
 
-- **Minimal Interface**: Only essential methods that all nodes must implement
-- **Thread-Safe Hash Caching**: Nodes cache computed hashes for performance
-- **Child References**: Use hash + version + type flag for efficient storage
-- **No Extension Nodes**: Following JMT design principle of simplicity
+This file originally contained the Node interface definitions, which have been moved to the types package to resolve import cycles between codec and tree packages. Now contains only helper functions that work with the types.Node interface.
 
-## Key Types
+## Key Functions
 
-- `NodeType`: Enum identifying node type (Internal=0x00, Leaf=0x01)
-- `Node`: Core interface with Type(), Hash(), IsCached(), Version()
-- `Child`: Reference to a child node containing hash, version, and leaf flag
+- Type checking: `IsLeaf()`, `IsInternal()` - moved to types package
+- Type casting: `AsLeaf()`, `AsInternal()` - safe type assertions for concrete types
+- Helper utilities that work with types.Node interface
 
 ## Helper Functions
 

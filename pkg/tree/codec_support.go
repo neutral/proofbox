@@ -17,9 +17,9 @@ func NewLeafNodeFromCodec(key types.Key, valueHash types.Hash, version types.Ver
 
 // NewInternalNodeFromCodec creates an internal node from decoded data.
 // This is used by the codec package to reconstruct nodes from storage.
-func NewInternalNodeFromCodec(children map[types.Nibble]Child, version types.Version) *InternalNode {
+func NewInternalNodeFromCodec(children map[types.Nibble]types.Child, version types.Version) *InternalNode {
 	if children == nil {
-		children = make(map[types.Nibble]Child)
+		children = make(map[types.Nibble]types.Child)
 	}
 	return &InternalNode{
 		children: children,

@@ -9,9 +9,9 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Node         = (*LeafNode)(nil)
-	_ NodeWithKey  = (*LeafNode)(nil)
-	_ NodeCloneable = (*LeafNode)(nil)
+	_ types.Node            = (*LeafNode)(nil)
+	_ types.NodeWithKey     = (*LeafNode)(nil)
+	_ types.NodeCloneable   = (*LeafNode)(nil)
 )
 
 // LeafNode represents a leaf in the tree containing actual data
@@ -47,8 +47,8 @@ func NewLeafNode(key types.Key, value []byte, version types.Version) (*LeafNode,
 }
 
 // Type returns NodeTypeLeaf
-func (n *LeafNode) Type() NodeType {
-	return NodeTypeLeaf
+func (n *LeafNode) Type() types.NodeType {
+	return types.NodeTypeLeaf
 }
 
 // Hash computes the leaf node hash
@@ -63,7 +63,7 @@ func (n *LeafNode) Hash() types.Hash {
 
 	// Compute hash
 	hash := crypto.DefaultHasher.HashConcat(
-		[]byte{byte(NodeTypeLeaf)},
+		[]byte{byte(types.NodeTypeLeaf)},
 		n.key[:],
 		n.valueHash[:],
 	)
@@ -113,7 +113,7 @@ func (n *LeafNode) SetValue(value []byte) error {
 }
 
 // Clone creates a new leaf node with the same data but different version
-func (n *LeafNode) Clone(newVersion types.Version) Node {
+func (n *LeafNode) Clone(newVersion types.Version) types.Node {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 

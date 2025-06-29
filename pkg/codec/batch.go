@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 )
 
@@ -23,7 +22,7 @@ func NewBatchEncoder() *BatchEncoder {
 }
 
 // Add encodes and adds a node to the batch
-func (b *BatchEncoder) Add(key types.NodeKey, node tree.Node) error {
+func (b *BatchEncoder) Add(key types.NodeKey, node types.Node) error {
 	// Encode node key
 	keyData := types.EncodeNodeKey(key)
 	if err := binary.Write(&b.buffer, binary.BigEndian, uint32(len(keyData))); err != nil {
@@ -63,7 +62,6 @@ func (b *BatchEncoder) Reset() {
 type BatchDecoder struct {
 	data  []byte
 	pos   int
-	codec NodeCodec
 }
 
 // NewBatchDecoder creates a new batch decoder
@@ -71,12 +69,11 @@ func NewBatchDecoder(data []byte) *BatchDecoder {
 	return &BatchDecoder{
 		data:  data,
 		pos:   0,
-		codec: NodeCodec{},
 	}
 }
 
 // Next decodes the next node key and node from the batch
-func (d *BatchDecoder) Next() (types.NodeKey, tree.Node, error) {
+func (d *BatchDecoder) Next() (types.NodeKey, types.Node, error) {
 	if d.pos >= len(d.data) {
 		return types.NodeKey{}, nil, nil // EOF
 	}
@@ -116,7 +113,7 @@ func (d *BatchDecoder) Next() (types.NodeKey, tree.Node, error) {
 	d.pos += int(nodeLen)
 
 	// Decode node
-	node, err := d.codec.DecodeNode(nodeData, key.Version)
+	node, err := DecodeNode(nodeData, key.Version)
 	if err != nil {
 		return types.NodeKey{}, nil, err
 	}

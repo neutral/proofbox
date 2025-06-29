@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 )
 
@@ -18,7 +17,7 @@ import (
 // Total per child: 42 bytes
 
 // EncodeInternalNode serializes an internal node to bytes
-func EncodeInternalNode(node *tree.InternalNode) ([]byte, error) {
+func EncodeInternalNode(node types.InternalNodeInterface) ([]byte, error) {
 	if node == nil {
 		return nil, nil
 	}
@@ -75,7 +74,7 @@ func EncodeInternalNode(node *tree.InternalNode) ([]byte, error) {
 }
 
 // DecodeInternalNode deserializes an internal node from bytes
-func DecodeInternalNode(data []byte, version types.Version) (*tree.InternalNode, error) {
+func DecodeInternalNode(data []byte, version types.Version) (types.InternalNodeInterface, error) {
 	if len(data) < 1 {
 		return nil, errors.New("empty internal node data")
 	}
@@ -93,7 +92,7 @@ func DecodeInternalNode(data []byte, version types.Version) (*tree.InternalNode,
 	}
 
 	// Create children map
-	children := make(map[types.Nibble]tree.Child, numChildren)
+	children := make(map[types.Nibble]types.Child, numChildren)
 
 	// Read each child
 	offset := 1
@@ -119,19 +118,19 @@ func DecodeInternalNode(data []byte, version types.Version) (*tree.InternalNode,
 		offset++
 
 		// Store child
-		children[nibble] = tree.Child{
+		children[nibble] = types.Child{
 			Hash:    hash,
 			Version: childVersion,
 			IsLeaf:  isLeaf,
 		}
 	}
 
-	// Use factory function to create node
-	return tree.NewInternalNodeFromCodec(children, version), nil
+	// Return decoded data - actual node creation handled by factory
+	return nil, fmt.Errorf("use codec.DecodeNode for node creation")
 }
 
 // InternalNodeSize calculates the serialized size of an internal node
-func InternalNodeSize(node *tree.InternalNode) int {
+func InternalNodeSize(node types.InternalNodeInterface) int {
 	return 1 + node.NumChildren()*42
 }
 

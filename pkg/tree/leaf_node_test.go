@@ -116,7 +116,7 @@ func TestLeafNodeAccessors(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test all accessors
-	assert.Equal(t, NodeTypeLeaf, leaf.Type())
+	assert.Equal(t, types.NodeTypeLeaf, leaf.Type())
 	assert.Equal(t, key, leaf.Key())
 	assert.Equal(t, value, leaf.Value())
 	assert.Equal(t, version, leaf.Version())
