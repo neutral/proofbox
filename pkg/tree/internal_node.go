@@ -7,6 +7,13 @@ import (
 	"github.com/neutral/proofbox/pkg/types"
 )
 
+// Compile-time interface compliance checks
+var (
+	_ Node             = (*InternalNode)(nil)
+	_ NodeWithChildren = (*InternalNode)(nil)
+	_ NodeCloneable    = (*InternalNode)(nil)
+)
+
 // InternalNode represents an internal node with up to 16 children
 type InternalNode struct {
 	children map[types.Nibble]Child // Sparse array of children
@@ -144,7 +151,7 @@ func (n *InternalNode) GetOnlyChild() (types.Nibble, Child, bool) {
 }
 
 // Clone creates a copy of the internal node with a new version
-func (n *InternalNode) Clone(newVersion types.Version) *InternalNode {
+func (n *InternalNode) Clone(newVersion types.Version) Node {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 

@@ -16,6 +16,12 @@ Branching nodes in the JMT that can have up to 16 children (one per nibble). For
 - **Cache Invalidation**: Any child modification invalidates hash cache
 - **GetOnlyChild**: Optimization helper for single-child nodes
 
+## Interface Implementation
+- Implements `Node` interface (Type, Hash, IsCached, Version)
+- Implements `NodeWithChildren` interface (Child, Children, NumChildren, GetOnlyChild)
+- Implements `NodeCloneable` interface (Clone method returns Node interface)
+- Compile-time interface checks ensure compliance
+
 ## Mutability Pattern
 - **Mutable Methods**: `SetChild()`, `RemoveChild()` modify the node in-place
 - **Immutable Pattern**: Use `Clone(newVersion)` to create a new node with modifications

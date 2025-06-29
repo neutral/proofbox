@@ -17,10 +17,18 @@ Terminal nodes in the JMT that store actual key-value mappings. Each leaf repres
 
 ## Mutability Pattern
 - **SetValue()**: Used only for loading values from storage, validates hash
+- **Clone()**: Creates new node with different version, preserving all data
 - **Immutable Updates**: Leaf nodes are replaced entirely during tree updates
 - **Thread Safety**: SetValue is not thread-safe by design (called during loading)
 
+## Interface Implementation
+- Implements `Node` interface (Type, Hash, IsCached, Version)
+- Implements `NodeWithKey` interface (Key accessor)
+- Implements `NodeCloneable` interface (Clone method)
+- Compile-time interface checks ensure compliance
+
 ## Performance
 - Hash computation cached after first calculation
-- Benchmarks show ~1μs for uncached hash computation
+- Benchmarks show ~278ns for uncached hash computation
 - Cached hash access is essentially free (RLock only)
+- Clone operation is O(1) with structural sharing

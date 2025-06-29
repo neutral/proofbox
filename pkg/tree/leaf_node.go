@@ -7,6 +7,13 @@ import (
 	"github.com/neutral/proofbox/pkg/types"
 )
 
+// Compile-time interface compliance checks
+var (
+	_ Node         = (*LeafNode)(nil)
+	_ NodeWithKey  = (*LeafNode)(nil)
+	_ NodeCloneable = (*LeafNode)(nil)
+)
+
 // LeafNode represents a leaf in the tree containing actual data
 type LeafNode struct {
 	key       types.Key  // The key this leaf represents
@@ -103,4 +110,17 @@ func (n *LeafNode) SetValue(value []byte) error {
 	}
 	n.value = value
 	return nil
+}
+
+// Clone creates a new leaf node with the same data but different version
+func (n *LeafNode) Clone(newVersion types.Version) Node {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	return &LeafNode{
+		key:       n.key,
+		valueHash: n.valueHash,
+		value:     n.value,
+		version:   newVersion,
+	}
 }

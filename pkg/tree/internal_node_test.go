@@ -80,7 +80,9 @@ func TestInternalNodeChildren(t *testing.T) {
 	assert.False(t, exists)
 
 	// Test clone
-	clone := node.Clone(2)
+	cloneNode := node.Clone(2)
+	clone, ok := cloneNode.(*InternalNode)
+	assert.True(t, ok)
 	assert.Equal(t, types.Version(2), clone.Version())
 	assert.Equal(t, node.NumChildren(), clone.NumChildren())
 
@@ -307,7 +309,7 @@ func BenchmarkInternalNodeHashUncached(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		node := template.Clone(1)
+		node := template.Clone(1).(*InternalNode)
 		_ = node.Hash()
 	}
 }
