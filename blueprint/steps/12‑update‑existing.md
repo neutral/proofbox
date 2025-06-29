@@ -1,7 +1,7 @@
 ---
-id: step.11.update‑existing
+id: step.12.update‑existing
 depends_on:
-  - step.10.insert‑basic
+  - step.11.leaf‑splitting
 tags: [update, step]
 ---
 
@@ -21,6 +21,7 @@ Handle insertions that update an existing key's value.
 ### Update Existing Key Algorithm
 
 When inserting a key that already exists, the tree must:
+
 1. Navigate to the existing leaf node
 2. Create a new leaf with updated value (maintaining immutability)
 3. Update all ancestors up to root with new version
@@ -29,23 +30,22 @@ When inserting a key that already exists, the tree must:
 ### Enhanced TreeUpdater Implementation
 
 ```go
-// insertIntoTree handles insertion into existing tree with full logic
+// insertIntoTree handles insertion into existing tree 
+// Note: Leaf splitting is implemented in step 11
 func (u *TreeUpdater) insertIntoTree(root Node, key Key, valueHash Hash) (Hash, error) {
-    path := NewNibblePath(key[:])
-    
     switch node := root.(type) {
     case *LeafNode:
         if node.Key == key {
             // Update existing key - same structure, new value
             return u.updateLeaf(node, valueHash)
         }
-        // Different key - need to split into internal node
-        return u.splitLeafNode(node, key, valueHash, path)
-        
+        // Different key - delegate to leaf splitting (step 11)
+        return u.splitLeafNode(node, key, valueHash)
+
     case *InternalNode:
         // Navigate down the tree
-        return u.insertIntoInternalNode(node, key, valueHash, path, 0)
-        
+        return u.insertIntoInternalNode(node, key, valueHash, 0)
+
     default:
         return Hash{}, fmt.Errorf("unexpected node type: %T", node)
     }
@@ -58,138 +58,53 @@ func (u *TreeUpdater) updateLeaf(oldLeaf *LeafNode, newValueHash Hash) (Hash, er
         // No change needed - return existing hash
         return oldLeaf.Hash(), nil
     }
-    
+
     // Create new leaf with updated value
     newLeaf := &LeafNode{
         Key:       oldLeaf.Key,
         ValueHash: newValueHash,
     }
     newLeaf.SetVersion(u.newVersion)
-    
+
     // Determine node key based on path
     nodeKey := NodeKey{
         Version: u.newVersion,
         Path:    oldLeaf.GetPath(),
     }
-    
+
     // Mark old node as stale
     u.staleNodes = append(u.staleNodes, NodeKey{
         Version: oldLeaf.Version(),
         Path:    oldLeaf.GetPath(),
     })
-    
+
     // Store new leaf
     u.nodeWrites[nodeKey] = newLeaf
-    
+
     // Return new hash (structure unchanged, only hash differs)
     return newLeaf.Hash(), nil
 }
 
-// splitLeafNode handles collision case where keys differ
-func (u *TreeUpdater) splitLeafNode(existingLeaf *LeafNode, newKey Key, 
-    newValueHash Hash, path NibblePath) (Hash, error) {
-    
-    existingPath := NewNibblePath(existingLeaf.Key[:])
-    
-    // Find common prefix length
-    commonLen := path.CommonPrefixLength(existingPath)
-    
-    // Create internal nodes for common path
-    var currentNode Node
-    currentNodeKey := NodeKey{Version: u.newVersion, Path: NibblePath{}}
-    
-    // Build chain of internal nodes for divergence
-    for i := 0; i < commonLen; i++ {
-        internal := &InternalNode{}
-        internal.SetVersion(u.newVersion)
-        
-        if currentNode != nil {
-            // Link previous node
-            nibble := path.GetNibble(i - 1)
-            internal.SetChild(nibble, currentNode, currentNodeKey.Version)
-        }
-        
-        currentNodeKey.Path = path.Prefix(i)
-        u.nodeWrites[currentNodeKey] = internal
-        currentNode = internal
-    }
-    
-    // Create new leaf for new key
-    newLeaf := &LeafNode{
-        Key:       newKey,
-        ValueHash: newValueHash,
-    }
-    newLeaf.SetVersion(u.newVersion)
-    
-    // Create internal node at divergence point
-    divergeNode := &InternalNode{}
-    divergeNode.SetVersion(u.newVersion)
-    
-    // Add both leaves as children
-    existingNibble := existingPath.GetNibble(commonLen)
-    newNibble := path.GetNibble(commonLen)
-    
-    // Store leaves with their paths
-    existingLeafKey := NodeKey{
-        Version: u.newVersion,
-        Path:    existingPath.Prefix(commonLen + 1),
-    }
-    newLeafKey := NodeKey{
-        Version: u.newVersion,
-        Path:    path.Prefix(commonLen + 1),
-    }
-    
-    u.nodeWrites[existingLeafKey] = existingLeaf
-    u.nodeWrites[newLeafKey] = newLeaf
-    
-    divergeNode.SetChild(existingNibble, existingLeaf, u.newVersion)
-    divergeNode.SetChild(newNibble, newLeaf, u.newVersion)
-    
-    // Store divergence node
-    divergeKey := NodeKey{
-        Version: u.newVersion,
-        Path:    path.Prefix(commonLen),
-    }
-    u.nodeWrites[divergeKey] = divergeNode
-    
-    // Connect to parent chain if exists
-    if currentNode != nil {
-        nibble := path.GetNibble(commonLen - 1)
-        currentNode.(*InternalNode).SetChild(nibble, divergeNode, u.newVersion)
-    }
-    
-    // Return appropriate root hash
-    if commonLen == 0 {
-        return divergeNode.Hash(), nil
-    }
-    
-    // Find actual root node
-    rootKey := NodeKey{Version: u.newVersion, Path: NibblePath{}}
-    if rootNode, exists := u.nodeWrites[rootKey]; exists {
-        return rootNode.Hash(), nil
-    }
-    
-    return Hash{}, errors.New("failed to find root after split")
-}
+// Path copying for version management
 
 // insertIntoInternalNode navigates internal nodes for insertion
-func (u *TreeUpdater) insertIntoInternalNode(node *InternalNode, key Key, 
+func (u *TreeUpdater) insertIntoInternalNode(node *InternalNode, key Key,
     valueHash Hash, path NibblePath, depth int) (Hash, error) {
-    
+
     if depth >= MaxKeyNibbles {
         return Hash{}, errors.New("maximum tree depth exceeded")
     }
-    
+
     // Get next nibble in path
     nibble := path.GetNibble(depth)
-    
+
     // Check if child exists
     child, exists := node.GetChild(nibble)
     if !exists {
         // Empty slot - create new leaf
         return u.createLeafInSlot(node, key, valueHash, path, depth, nibble)
     }
-    
+
     // Load child node
     childNode, err := u.loadNode(NodeKey{
         Version: child.Version,
@@ -198,25 +113,25 @@ func (u *TreeUpdater) insertIntoInternalNode(node *InternalNode, key Key,
     if err != nil {
         return Hash{}, fmt.Errorf("failed to load child: %w", err)
     }
-    
+
     // Recursively insert into child
     childHash, err := u.insertIntoTree(childNode, key, valueHash)
     if err != nil {
         return Hash{}, err
     }
-    
+
     // Create new version of internal node with updated child
     return u.updateInternalNode(node, nibble, childHash, path.Prefix(depth))
 }
 
 // updateInternalNode creates new version with updated child
-func (u *TreeUpdater) updateInternalNode(oldNode *InternalNode, 
+func (u *TreeUpdater) updateInternalNode(oldNode *InternalNode,
     childNibble Nibble, childHash Hash, nodePath NibblePath) (Hash, error) {
-    
+
     // Create new internal node
     newNode := &InternalNode{}
     newNode.SetVersion(u.newVersion)
-    
+
     // Copy all children
     for nibble := Nibble(0); nibble < 16; nibble++ {
         if child, exists := oldNode.GetChild(nibble); exists {
@@ -232,34 +147,34 @@ func (u *TreeUpdater) updateInternalNode(oldNode *InternalNode,
             }
         }
     }
-    
+
     // Store new node
     nodeKey := NodeKey{
         Version: u.newVersion,
         Path:    nodePath,
     }
     u.nodeWrites[nodeKey] = newNode
-    
+
     // Mark old node as stale
     u.staleNodes = append(u.staleNodes, NodeKey{
         Version: oldNode.Version(),
         Path:    nodePath,
     })
-    
+
     return newNode.Hash(), nil
 }
 
 // createLeafInSlot creates new leaf in empty child slot
-func (u *TreeUpdater) createLeafInSlot(parent *InternalNode, key Key, 
+func (u *TreeUpdater) createLeafInSlot(parent *InternalNode, key Key,
     valueHash Hash, path NibblePath, depth int, nibble Nibble) (Hash, error) {
-    
+
     // Create new leaf
     leaf := &LeafNode{
         Key:       key,
         ValueHash: valueHash,
     }
     leaf.SetVersion(u.newVersion)
-    
+
     // Store leaf
     leafPath := path.Prefix(depth + 1)
     leafKey := NodeKey{
@@ -267,56 +182,15 @@ func (u *TreeUpdater) createLeafInSlot(parent *InternalNode, key Key,
         Path:    leafPath,
     }
     u.nodeWrites[leafKey] = leaf
-    
+
     // Update parent to include new leaf
     return u.updateInternalNode(parent, nibble, leaf.Hash(), path.Prefix(depth))
 }
 ```
 
-### Collision Handling
+### Path Copying and Version Management
 
-```go
-// NibblePath operations for collision detection
-type NibblePath struct {
-    nibbles []Nibble
-}
-
-func NewNibblePath(data []byte) NibblePath {
-    nibbles := make([]Nibble, 0, len(data)*2)
-    for _, b := range data {
-        nibbles = append(nibbles, Nibble(b>>4), Nibble(b&0x0F))
-    }
-    return NibblePath{nibbles: nibbles}
-}
-
-func (p NibblePath) CommonPrefixLength(other NibblePath) int {
-    minLen := len(p.nibbles)
-    if len(other.nibbles) < minLen {
-        minLen = len(other.nibbles)
-    }
-    
-    for i := 0; i < minLen; i++ {
-        if p.nibbles[i] != other.nibbles[i] {
-            return i
-        }
-    }
-    return minLen
-}
-
-func (p NibblePath) GetNibble(index int) (Nibble, error) {
-    if index < 0 || index >= len(p.nibbles) {
-        return 0, fmt.Errorf("nibble index %d out of bounds [0, %d)", index, len(p.nibbles))
-    }
-    return p.nibbles[index], nil
-}
-
-func (p NibblePath) Prefix(length int) NibblePath {
-    if length > len(p.nibbles) {
-        length = len(p.nibbles)
-    }
-    return NibblePath{nibbles: p.nibbles[:length]}
-}
-```
+When updating an existing key, the tree must maintain immutability by creating new versions of all nodes along the path from the updated leaf to the root. This ensures previous versions remain accessible.
 
 ### Tree Restructuring
 
@@ -338,7 +212,7 @@ func (u *TreeUpdater) BuildUpdateBatch() (*UpdateBatch, error) {
         OldVersion:    u.oldVersion,
         NewVersion:    u.newVersion,
     }
-    
+
     // Find root hash
     rootKey := NodeKey{Version: u.newVersion, Path: NibblePath{}}
     if root, exists := u.nodeWrites[rootKey]; exists {
@@ -346,7 +220,7 @@ func (u *TreeUpdater) BuildUpdateBatch() (*UpdateBatch, error) {
     } else {
         return nil, errors.New("no root found in update batch")
     }
-    
+
     return batch, nil
 }
 
@@ -356,31 +230,31 @@ func (t *Tree) ValidateStructuralIntegrity(version Version) error {
     if err != nil {
         return fmt.Errorf("failed to get root hash: %w", err)
     }
-    
+
     if rootHash == EmptyHash {
         // Empty tree is valid
         return nil
     }
-    
+
     // Load and validate root
     root, err := t.loadNode(RootNodeKey(version))
     if err != nil {
         return fmt.Errorf("failed to load root: %w", err)
     }
-    
+
     visited := make(map[NodeKey]bool)
     return t.validateNode(root, version, NibblePath{}, visited)
 }
 
-func (t *Tree) validateNode(node Node, version Version, 
+func (t *Tree) validateNode(node Node, version Version,
     path NibblePath, visited map[NodeKey]bool) error {
-    
+
     nodeKey := NodeKey{Version: version, Path: path}
     if visited[nodeKey] {
         return fmt.Errorf("cycle detected at %v", nodeKey)
     }
     visited[nodeKey] = true
-    
+
     switch n := node.(type) {
     case *LeafNode:
         // Verify leaf path matches key
@@ -388,38 +262,38 @@ func (t *Tree) validateNode(node Node, version Version,
         if !path.Equals(keyPath.Prefix(len(path.nibbles))) {
             return fmt.Errorf("leaf path mismatch at %v", nodeKey)
         }
-        
+
     case *InternalNode:
         childCount := 0
         for nibble := Nibble(0); nibble < 16; nibble++ {
             if child, exists := n.GetChild(nibble); exists {
                 childCount++
-                
+
                 // Load and validate child
                 childPath := append(path.nibbles, nibble)
                 childKey := NodeKey{
                     Version: child.Version,
                     Path:    NibblePath{nibbles: childPath},
                 }
-                
+
                 childNode, err := t.loadNode(childKey)
                 if err != nil {
                     return fmt.Errorf("failed to load child %v: %w", childKey, err)
                 }
-                
-                if err := t.validateNode(childNode, child.Version, 
+
+                if err := t.validateNode(childNode, child.Version,
                     childKey.Path, visited); err != nil {
                     return err
                 }
             }
         }
-        
+
         // Internal nodes should have at least 2 children
         if childCount < 2 && len(path.nibbles) > 0 {
             return fmt.Errorf("internal node has < 2 children at %v", nodeKey)
         }
     }
-    
+
     return nil
 }
 ```
@@ -440,30 +314,30 @@ func (t *Tree) validateNode(node Node, version Version,
 ```go
 func TestUpdateExistingKeyDetection(t *testing.T) {
     tree := createTestTree(t)
-    
+
     key := KeyHash([]byte("update-key"))
-    
+
     // Initial insert
     v1, _ := tree.Put(key, []byte("value1"))
-    
+
     // Track tree structure before update
     structure1 := captureTreeStructure(tree, v1)
-    
+
     // Update same key
     v2, _ := tree.Put(key, []byte("value2"))
-    
+
     // Track tree structure after update
     structure2 := captureTreeStructure(tree, v2)
-    
+
     // Verify structure unchanged
     if !structure1.Equals(structure2) {
         t.Error("Tree structure should remain identical for key update")
     }
-    
+
     // Verify root hash changed
     hash1, _ := tree.GetRootHash(v1)
     hash2, _ := tree.GetRootHash(v2)
-    
+
     if hash1 == hash2 {
         t.Error("Root hash must change when value updated")
     }
@@ -471,32 +345,32 @@ func TestUpdateExistingKeyDetection(t *testing.T) {
 
 func TestCollisionHandling(t *testing.T) {
     tree := createTestTree(t)
-    
+
     // Insert keys that will collide
     key1 := Key{0x12, 0x34} // Nibbles: 1,2,3,4
     key2 := Key{0x12, 0x35} // Nibbles: 1,2,3,5 (diverge at position 3)
-    
+
     v1, _ := tree.Put(key1, []byte("value1"))
     v2, _ := tree.Put(key2, []byte("value2"))
-    
+
     // Verify both keys exist
     val1, _ := tree.Get(v2, key1)
     val2, _ := tree.Get(v2, key2)
-    
+
     if !bytes.Equal(val1, []byte("value1")) {
         t.Error("First key value incorrect after collision")
     }
     if !bytes.Equal(val2, []byte("value2")) {
         t.Error("Second key value incorrect")
     }
-    
+
     // Verify internal node created at divergence
     root, _ := tree.loadNode(RootNodeKey(v2))
     internal, ok := root.(*InternalNode)
     if !ok {
         t.Fatal("Root should be internal node after collision")
     }
-    
+
     // Should have exactly one internal node with 2 children
     childCount := 0
     for i := Nibble(0); i < 16; i++ {
@@ -504,7 +378,7 @@ func TestCollisionHandling(t *testing.T) {
             childCount++
         }
     }
-    
+
     if childCount < 2 {
         t.Errorf("Internal node should have at least 2 children, got %d", childCount)
     }
@@ -512,36 +386,36 @@ func TestCollisionHandling(t *testing.T) {
 
 func TestBatchUpdateTracking(t *testing.T) {
     tree := createTestTree(t)
-    
+
     // Insert initial data
     key := KeyHash([]byte("batch-key"))
     v1, _ := tree.Put(key, []byte("value1"))
-    
+
     // Capture update batch for second version
     var capturedBatch *UpdateBatch
     tree.beforeCommit = func(batch *UpdateBatch) {
         capturedBatch = batch
     }
-    
+
     v2, _ := tree.Put(key, []byte("value2"))
-    
+
     // Verify batch contents
     if capturedBatch == nil {
         t.Fatal("Update batch not captured")
     }
-    
+
     if len(capturedBatch.NewNodes) == 0 {
         t.Error("Batch should contain new nodes")
     }
-    
+
     if len(capturedBatch.StaleNodeKeys) == 0 {
         t.Error("Batch should mark old nodes as stale")
     }
-    
+
     if capturedBatch.OldVersion != v1 {
         t.Errorf("Old version incorrect: got %d, want %d", capturedBatch.OldVersion, v1)
     }
-    
+
     if capturedBatch.NewVersion != v2 {
         t.Errorf("New version incorrect: got %d, want %d", capturedBatch.NewVersion, v2)
     }
@@ -553,7 +427,7 @@ func TestBatchUpdateTracking(t *testing.T) {
 ```go
 func TestTreeStructuralIntegrity(t *testing.T) {
     tree := createTestTree(t)
-    
+
     // Build tree with multiple collisions
     keys := []Key{
         {0x00, 0x00},
@@ -563,7 +437,7 @@ func TestTreeStructuralIntegrity(t *testing.T) {
         {0x01, 0x00},
         {0x01, 0x01},
     }
-    
+
     var version Version
     for i, key := range keys {
         v, err := tree.Put(key, []byte(fmt.Sprintf("value%d", i)))
@@ -572,15 +446,15 @@ func TestTreeStructuralIntegrity(t *testing.T) {
         }
         version = v
     }
-    
+
     // Validate final structure
     if err := tree.ValidateStructuralIntegrity(version); err != nil {
         t.Errorf("Tree structure invalid: %v", err)
     }
-    
+
     // Update middle key and revalidate
     v2, _ := tree.Put(keys[3], []byte("updated"))
-    
+
     if err := tree.ValidateStructuralIntegrity(v2); err != nil {
         t.Errorf("Tree structure invalid after update: %v", err)
     }
@@ -588,23 +462,23 @@ func TestTreeStructuralIntegrity(t *testing.T) {
 
 func TestConcurrentUpdates(t *testing.T) {
     tree := createTestTree(t)
-    
+
     // Initial state
     keys := make([]Key, 100)
     for i := range keys {
         keys[i] = KeyHash([]byte(fmt.Sprintf("key-%d", i)))
         tree.Put(keys[i], []byte(fmt.Sprintf("value-%d", i)))
     }
-    
+
     // Concurrent updates to same keys
     var wg sync.WaitGroup
     errors := make(chan error, 10)
-    
+
     for i := 0; i < 10; i++ {
         wg.Add(1)
         go func(worker int) {
             defer wg.Done()
-            
+
             // Each worker updates subset of keys
             for j := worker; j < len(keys); j += 10 {
                 _, err := tree.Put(keys[j], []byte(fmt.Sprintf("updated-%d-%d", worker, j)))
@@ -615,15 +489,15 @@ func TestConcurrentUpdates(t *testing.T) {
             }
         }(i)
     }
-    
+
     wg.Wait()
     close(errors)
-    
+
     // Check for errors
     for err := range errors {
         t.Errorf("Concurrent update error: %v", err)
     }
-    
+
     // Validate final tree
     finalVersion := tree.GetLatestVersion()
     if err := tree.ValidateStructuralIntegrity(finalVersion); err != nil {

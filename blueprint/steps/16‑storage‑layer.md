@@ -1,7 +1,7 @@
 ---
-id: step.14.storage-layer
+id: step.16.storage-layer
 depends_on:
-  - step.13.update-batch
+  - step.15.update-batch
 tags: [storage, persistence, step]
 ---
 

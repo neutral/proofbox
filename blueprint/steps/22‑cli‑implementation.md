@@ -1,8 +1,8 @@
 ---
-id: step.20.cli-implementation
+id: step.22.cli-implementation
 depends_on:
-  - step.14.storage-layer
-  - step.11.proof-system
+  - step.16.storage-layer
+  - step.13.proof-system
 tags: [cli, interface, step]
 ---
 

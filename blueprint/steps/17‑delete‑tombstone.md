@@ -1,8 +1,8 @@
 ---
-id: step.19.delete‑tombstone
+id: step.17.delete‑tombstone
 depends_on:
-  - step.18.persist‑multi‑ver
-  - step.14.proof‑neighbor
+  - step.16.storage-layer
+  - step.13.proof-system
 tags: [deletion, step]
 ---
 

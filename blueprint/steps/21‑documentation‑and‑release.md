@@ -1,8 +1,8 @@
 ---
-id: step.19.documentation-and-release
+id: step.21.documentation-and-release
 depends_on:
-  - step.18.ci
-  - step.20.cli-implementation
+  - step.20.ci
+  - step.22.cli-implementation
 tags: [docs, release, step]
 ---
 
