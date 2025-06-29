@@ -220,20 +220,13 @@ func CloneNode(n Node, newVersion types.Version) (Node, error) {
 }
 
 // NewNode creates a node from its type and data
-// This is a placeholder that will be implemented with codec support
+// Note: This function requires a version parameter to be fully functional.
+// The codec package should be used directly for proper node decoding.
 func NewNode(nodeType NodeType, data []byte) (Node, error) {
-	switch nodeType {
-	case NodeTypeLeaf:
-		// Placeholder - will use DecodeLeafNode when codec is implemented
-		return nil, fmt.Errorf("leaf decoding not yet implemented")
-
-	case NodeTypeInternal:
-		// Placeholder - will use DecodeInternalNode when codec is implemented
-		return nil, fmt.Errorf("internal decoding not yet implemented")
-
-	default:
-		return nil, fmt.Errorf("unknown node type: %d", nodeType)
-	}
+	// This function is primarily for backward compatibility.
+	// For proper decoding with version support, use the codec package directly:
+	// codec.DecodeLeafNode(data, version) or codec.DecodeInternalNode(data, version)
+	return nil, fmt.Errorf("use codec package for node decoding - version parameter required")
 }
 
 // NodeVisitor defines methods for visiting nodes

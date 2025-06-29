@@ -75,3 +75,12 @@ data := leafNode.Value()
 2. **Cache Manager**: Must handle nodes with/without values
 3. **Proof System**: Must work with value hashes only
 4. **Get Operations**: Must trigger value loading when needed
+
+## Storage Architecture
+
+Values are stored separately from tree nodes to enable:
+- Different serialization formats for values
+- Lazy loading without affecting tree performance
+- Evolution of value schemas without tree changes
+
+See `/blueprint/decisions/010-value-storage-separation.md` for detailed rationale and `/blueprint/global/specs/storage-architecture.md` for implementation details.
