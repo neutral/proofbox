@@ -290,8 +290,9 @@ func TestStorageKeys(t *testing.T) {
 	t.Run("ValueKeys", func(t *testing.T) {
 		// Test makeValueKey
 		hash := types.Hash{0x01, 0x02, 0x03}
-		key := makeValueKey(5, hash)
+		key := makeValueKey(hash)
 		assert.Equal(t, byte('v'), key[0])
+		assert.Equal(t, 33, len(key)) // 1 byte prefix + 32 byte hash
 
 		// Test makeValueKeyByKey
 		testKey := types.KeyHash([]byte("test"))

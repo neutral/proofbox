@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/cockroachdb/pebble"
@@ -153,7 +154,7 @@ func (r *TreeReader) loadNode(key types.NodeKey) (types.Node, error) {
 
 // loadValue loads a value by its hash
 func (r *TreeReader) loadValue(hash types.Hash) ([]byte, error) {
-	valueKey := makeValueKey(r.version, hash)
+	valueKey := makeValueKey(hash)
 	data, closer, err := r.snapshot.Get(valueKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load value: %w", err)
@@ -163,6 +164,11 @@ func (r *TreeReader) loadValue(hash types.Hash) ([]byte, error) {
 	// Copy data before closing
 	result := make([]byte, len(data))
 	copy(result, data)
+
+	// Verify hash matches (important for security)
+	if computedHash := types.Hash(sha256.Sum256(result)); computedHash != hash {
+		return nil, fmt.Errorf("value hash mismatch: expected %x, got %x", hash, computedHash)
+	}
 
 	return result, nil
 }

@@ -9,9 +9,9 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ types.Node            = (*LeafNode)(nil)
-	_ types.NodeWithKey     = (*LeafNode)(nil)
-	_ types.NodeCloneable   = (*LeafNode)(nil)
+	_ types.Node          = (*LeafNode)(nil)
+	_ types.NodeWithKey   = (*LeafNode)(nil)
+	_ types.NodeCloneable = (*LeafNode)(nil)
 )
 
 // LeafNode represents a leaf in the tree containing actual data

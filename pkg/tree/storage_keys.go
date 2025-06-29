@@ -32,11 +32,11 @@ func parseRootKey(key []byte) (types.Version, error) {
 }
 
 // makeValueKey creates a storage key for value
-func makeValueKey(version types.Version, hash types.Hash) []byte {
-	key := make([]byte, 1+8+32)
+// Values are content-addressed without version to enable deduplication
+func makeValueKey(hash types.Hash) []byte {
+	key := make([]byte, 1+32)
 	key[0] = 'v' // Value prefix
-	binary.BigEndian.PutUint64(key[1:9], uint64(version))
-	copy(key[9:], hash[:])
+	copy(key[1:], hash[:])
 	return key
 }
 

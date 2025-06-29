@@ -6,6 +6,11 @@ The Jellyfish Merkle Tree implements a two-tier storage architecture that separa
 
 ## Two-Tier Architecture
 
+**Important**: "Two-tier" refers to logical separation of concerns, not physical separation. Both tiers can (and typically do) reside in the same database instance (e.g., PebbleDB) with different key prefixes. The separation enables:
+- Independent optimization of tree vs value operations
+- Future flexibility to move tiers to different backends
+- Clear API boundaries and testing
+
 ### Tier 1: Tree Structure Storage
 
 **Purpose**: Store the Merkle tree nodes for fast traversal and proof generation
@@ -37,10 +42,10 @@ node:<version>:<node_hash> -> [NodeType][NodeData]
 
 **Key Space**:
 ```
-value:<key> -> [FormatByte][SerializedData]
-// OR
 value:<value_hash> -> [FormatByte][SerializedData]
 ```
+
+**Note**: For Merkle trees, values MUST be addressed by hash to maintain cryptographic verification. Key-based addressing would break the security properties of the tree.
 
 ## Data Flow
 
@@ -93,9 +98,10 @@ Format indicated by prefix byte:
 
 ### Value Operations
 - Store: One write + hash computation
-- Load: One read + deserialization
+- Load: One read + deserialization  
 - Lazy: Loaded only when accessed
 - Cacheable: LRU cache friendly
+- Deduplication: Same value across versions stored once
 
 ## Storage Optimization
 

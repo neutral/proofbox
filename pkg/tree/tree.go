@@ -15,9 +15,9 @@ type Tree struct {
 	db *pebble.DB
 
 	// Version management (protected by mu)
-	mu         sync.RWMutex                    // Protects version metadata
-	latestVer  types.Version                   // Latest committed version
-	rootHashes map[types.Version]types.Hash    // Version -> root hash cache
+	mu         sync.RWMutex                 // Protects version metadata
+	latestVer  types.Version                // Latest committed version
+	rootHashes map[types.Version]types.Hash // Version -> root hash cache
 
 	// Write coordination
 	writeMu sync.Mutex // Serializes write operations

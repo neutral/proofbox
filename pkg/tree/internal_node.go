@@ -9,9 +9,9 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ types.Node               = (*InternalNode)(nil)
-	_ types.NodeWithChildren   = (*InternalNode)(nil)
-	_ types.NodeCloneable      = (*InternalNode)(nil)
+	_ types.Node             = (*InternalNode)(nil)
+	_ types.NodeWithChildren = (*InternalNode)(nil)
+	_ types.NodeCloneable    = (*InternalNode)(nil)
 )
 
 // InternalNode represents an internal node with up to 16 children
