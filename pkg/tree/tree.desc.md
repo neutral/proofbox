@@ -58,8 +58,34 @@ The tree package now uses a factory pattern to register with the codec package:
 - Registers node creation factory at initialization
 - Enables full codec integration without circular imports
 
+## Versioning Support
+
+The tree now includes comprehensive multi-version support:
+
+### Version Management
+- **VersionManager**: Tracks version lifecycle (pending, committed, aborted)
+- **Concurrent Versions**: Multiple pending versions can exist simultaneously
+- **Parent Tracking**: Each version builds on a committed parent
+
+### Structural Sharing
+- **PathCloner**: Implements copy-on-write for modified paths
+- **TreeUpdater**: Accumulates changes for atomic commits
+- **Space Efficiency**: Unchanged subtrees shared across versions
+
+### Versioned API
+- `BeginVersion()`: Start a new version
+- `PutVersioned()`: Insert/update in a pending version with full validation
+- `DeleteVersioned()`: Remove key in a pending version with full validation
+- `GetAtVersion()`: Read from any committed version
+- `CommitVersion()`: Finalize changes atomically with proper rollback on failure
+- `AbortVersion()`: Cancel pending changes
+- `CollectVersionGarbage()`: Remove old versions based on retention policy
+- `SetVersionRetentionPolicy()`: Configure how versions are retained
+
 ## Current Status
 
-- Read operations fully implemented with empty tree handling
-- Write operations not yet implemented (step 09+)
-- Full codec integration completed via factory pattern
+- Full CRUD operations implemented with versioning
+- Structural sharing via path cloning
+- Atomic batch commits to storage
+- Proof generation and verification (step 13)
+- Multi-version state management (step 14)

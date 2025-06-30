@@ -4,36 +4,40 @@ The Put method implements key-value insertion and updates for the Jellyfish Merk
 
 ## Purpose
 
-Put is the primary write operation for the tree, handling:
-- Input validation
-- Version management
-- Atomic batch commits
-- In-memory state updates
+Put is the primary write operation for the tree, now integrated with the versioning system to support multi-version concurrency control.
 
-## Design Principles
+## Current Implementation
 
-1. **Write Serialization**: All Put operations are serialized using `writeMu` to ensure consistency and prevent concurrent modifications.
+As of step 14, Put has been refactored to use the versioning API:
+- Creates a new version automatically via `BeginVersion()`
+- Delegates to `PutVersioned()` for the actual operation
+- Commits the version atomically
+- Returns the new version number to the caller
 
-2. **Atomic Operations**: Each Put creates a new version with all changes committed atomically via PebbleDB batch operations.
+## Design Evolution
 
-3. **Fail-Safe**: If any part of the operation fails, the entire operation is rolled back, maintaining tree consistency.
+### Original Design (Pre-versioning)
+- Direct tree modification with immediate commits
+- Single-version tree with version numbers for tracking
 
-4. **Version Monotonicity**: Versions always increment by 1, with overflow protection.
+### Current Design (With versioning)
+- Version-aware operations through TreeUpdater
+- Structural sharing via PathCloner
+- Atomic batch commits per version
+- Support for concurrent pending versions
 
 ## Operation Flow
 
-1. Validate inputs (key non-empty, value size within limits)
-2. Acquire write lock
-3. Create new version number
-4. Delegate to TreeUpdater for tree modification logic
-5. Write all changes to batch
-6. Store new root hash
-7. Commit batch atomically
-8. Update in-memory version tracking
+1. Begin new version
+2. Perform versioned put operation
+3. Commit version (or abort on error)
+4. Return new version number
 
-## Error Handling
+## Integration Points
 
-- Input validation errors return immediately without side effects
-- Storage errors cause rollback via batch.Close() without commit
-- Version overflow is detected and prevented
-- All errors follow patterns from step 03 error handling
+- **TreeUpdater**: Handles the actual tree modifications
+- **VersionManager**: Manages version lifecycle
+- **PathCloner**: Ensures structural sharing
+- **Storage Layer**: Atomic batch commits
+
+The simplified API maintains backward compatibility while leveraging the full versioning infrastructure internally.

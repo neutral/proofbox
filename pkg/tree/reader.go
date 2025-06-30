@@ -93,6 +93,11 @@ func (r *TreeReader) Get(key types.Key) ([]byte, error) {
 				return nil, nil // Path doesn't exist
 			}
 
+			// Check if child exists in our version
+			if child.Version > r.version {
+				return nil, nil // Child was created after our version
+			}
+
 			// Load child node
 			childKey := types.NodeKey{
 				Version: child.Version,
@@ -197,6 +202,17 @@ func (t *Tree) validateKey(key types.Key) error {
 	// Keys are always 32 bytes, so just check for zero key
 	if key == (types.Key{}) {
 		return types.ErrEmptyKey
+	}
+	return nil
+}
+
+// validateValue checks if a value is valid
+func (t *Tree) validateValue(value []byte) error {
+	if len(value) == 0 {
+		return types.ErrEmptyValue
+	}
+	if len(value) > types.MaxValueSize {
+		return types.ErrValueTooLarge
 	}
 	return nil
 }
