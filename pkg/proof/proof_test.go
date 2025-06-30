@@ -176,11 +176,26 @@ func TestProofTampering(t *testing.T) {
 	
 	// Test 3: Tamper with sibling data if present
 	if len(proof.Siblings) > 0 {
-		originalHash := proof.Siblings[0].Children
-		proof.Siblings[0].Children = make(map[types.Nibble]types.Hash)
-		err = verifier.Verify(proof)
-		assert.Error(t, err)
-		proof.Siblings[0].Children = originalHash
+		t.Logf("Number of siblings: %d", len(proof.Siblings))
+		t.Logf("First sibling depth: %d, children count: %d", proof.Siblings[0].Depth, len(proof.Siblings[0].Children))
+		
+		// Instead of clearing all children, let's tamper with an existing child hash
+		originalChildren := proof.Siblings[0].Children
+		if len(originalChildren) > 0 {
+			// Find a child that's not on the proof path and modify its hash
+			nibblePath := proof.Key.ToNibblePath()
+			targetNibble := nibblePath.Nibbles[proof.Siblings[0].Depth]
+			for nibble := range originalChildren {
+				if nibble != targetNibble {
+					// Tamper with this sibling's hash
+					proof.Siblings[0].Children[nibble] = types.Hash{0xFF, 0xFF, 0xFF}
+					err = verifier.Verify(proof)
+					assert.Error(t, err, "tampering with sibling hash should fail verification")
+					break
+				}
+			}
+		}
+		proof.Siblings[0].Children = originalChildren
 	}
 	
 	// Original proof should still verify
