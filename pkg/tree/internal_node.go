@@ -9,9 +9,10 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ types.Node             = (*InternalNode)(nil)
-	_ types.NodeWithChildren = (*InternalNode)(nil)
-	_ types.NodeCloneable    = (*InternalNode)(nil)
+	_ types.Node                  = (*InternalNode)(nil)
+	_ types.NodeWithChildren      = (*InternalNode)(nil)
+	_ types.NodeCloneable         = (*InternalNode)(nil)
+	_ types.InternalNodeInterface = (*InternalNode)(nil)
 )
 
 // InternalNode represents an internal node with up to 16 children
@@ -108,12 +109,13 @@ func (n *InternalNode) SetChild(nibble types.Nibble, child types.Child) error {
 }
 
 // RemoveChild removes a child
-func (n *InternalNode) RemoveChild(nibble types.Nibble) {
+func (n *InternalNode) RemoveChild(nibble types.Nibble) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
 	delete(n.children, nibble)
 	n.cachedHash = nil // Invalidate cache
+	return nil
 }
 
 // NumChildren returns the number of non-empty children

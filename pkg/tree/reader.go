@@ -72,7 +72,9 @@ func (r *TreeReader) Get(key types.Key) ([]byte, error) {
 	// Traverse to leaf
 	nibblePath := key.ToNibblePath()
 	current := root
-
+	
+	// We need to handle up to depth 64 for leaves, but only up to depth 63 for internal nodes
+	// So we'll traverse normally up to depth 63, then handle depth 64 specially
 	for depth := 0; depth < types.MaxTreeDepth; depth++ {
 		switch node := current.(type) {
 		case *LeafNode:
@@ -113,6 +115,15 @@ func (r *TreeReader) Get(key types.Key) ([]byte, error) {
 		default:
 			return nil, fmt.Errorf("unknown node type: %T", node)
 		}
+	}
+
+	// After the loop, we've processed depths 0-63
+	// Check if current is a leaf (which would be at depth 64)
+	if leafNode, ok := current.(*LeafNode); ok {
+		if leafNode.Key() == key {
+			return r.loadValue(leafNode.ValueHash())
+		}
+		return nil, nil // Different key
 	}
 
 	return nil, types.ErrMaxDepthExceeded

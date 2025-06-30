@@ -15,7 +15,7 @@ Documents significant design decisions made during the implementation of the Jel
 7. **007-no-panics-in-library.md** - All errors returned as values, never panic
 8. **008-empty-hash-vs-empty-tree-hash.md** - Distinction between zero hash and missing children
 9. **009-value-storage-strategy.md** - Lazy loading of values with hash validation
-10. **010-value-storage-separation.md** - Two-tier architecture separating tree structure from values
+10. **010-single-child-chains.md** - Accepting single-child chains as per JMT specification
 
 ## Decision Process
 

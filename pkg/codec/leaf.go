@@ -51,4 +51,3 @@ func DecodeLeafNode(data []byte, version types.Version) (types.LeafNodeInterface
 func LeafNodeSize() int {
 	return 64 // Always fixed size
 }
-

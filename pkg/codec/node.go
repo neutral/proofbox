@@ -104,4 +104,3 @@ func (c *NodeCodec) EncodeNodeWithKey(key types.NodeKey, node types.Node) ([]byt
 
 	return keyData, nodeData, nil
 }
-

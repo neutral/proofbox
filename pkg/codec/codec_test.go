@@ -17,13 +17,13 @@ type MockLeafNode struct {
 	hash      types.Hash
 }
 
-func (m *MockLeafNode) Type() types.NodeType       { return types.NodeTypeLeaf }
-func (m *MockLeafNode) Hash() types.Hash           { return m.hash }
-func (m *MockLeafNode) IsCached() bool             { return true }
-func (m *MockLeafNode) Version() types.Version     { return m.version }
-func (m *MockLeafNode) Key() types.Key             { return m.key }
-func (m *MockLeafNode) ValueHash() types.Hash      { return m.valueHash }
-func (m *MockLeafNode) Value() []byte              { return m.value }
+func (m *MockLeafNode) Type() types.NodeType        { return types.NodeTypeLeaf }
+func (m *MockLeafNode) Hash() types.Hash            { return m.hash }
+func (m *MockLeafNode) IsCached() bool              { return true }
+func (m *MockLeafNode) Version() types.Version      { return m.version }
+func (m *MockLeafNode) Key() types.Key              { return m.key }
+func (m *MockLeafNode) ValueHash() types.Hash       { return m.valueHash }
+func (m *MockLeafNode) Value() []byte               { return m.value }
 func (m *MockLeafNode) SetValue(value []byte) error { m.value = value; return nil }
 func (m *MockLeafNode) Clone(v types.Version) types.Node {
 	return &MockLeafNode{
@@ -42,10 +42,10 @@ type MockInternalNode struct {
 	hash     types.Hash
 }
 
-func (m *MockInternalNode) Type() types.NodeType       { return types.NodeTypeInternal }
-func (m *MockInternalNode) Hash() types.Hash           { return m.hash }
-func (m *MockInternalNode) IsCached() bool             { return true }
-func (m *MockInternalNode) Version() types.Version     { return m.version }
+func (m *MockInternalNode) Type() types.NodeType   { return types.NodeTypeInternal }
+func (m *MockInternalNode) Hash() types.Hash       { return m.hash }
+func (m *MockInternalNode) IsCached() bool         { return true }
+func (m *MockInternalNode) Version() types.Version { return m.version }
 func (m *MockInternalNode) Child(nibble types.Nibble) (types.Child, bool) {
 	c, ok := m.children[nibble]
 	return c, ok

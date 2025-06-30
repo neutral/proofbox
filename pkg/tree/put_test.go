@@ -208,7 +208,7 @@ func TestPut_ConcurrentWrites(t *testing.T) {
 	assert.Equal(t, types.Version(numGoroutines), tree.GetLatestVersion())
 }
 
-func TestPut_DifferentKeyError(t *testing.T) {
+func TestPut_DifferentKeySuccess(t *testing.T) {
 	db := createTestDB(t)
 
 	tree, err := NewTree(db, DefaultTreeConfig())
@@ -221,15 +221,15 @@ func TestPut_DifferentKeyError(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, types.Version(1), v1)
 
-	// Try to insert different key (should fail in step 09)
+	// Try to insert different key (should now succeed with splitting)
 	key2 := types.KeyHash([]byte("key2"))
 	value2 := []byte("value2")
-	_, err = tree.Put(key2, value2)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "leaf splitting not implemented")
+	v2, err := tree.Put(key2, value2)
+	assert.NoError(t, err)
+	assert.Equal(t, types.Version(2), v2)
 
-	// Tree should still be at version 1
-	assert.Equal(t, types.Version(1), tree.GetLatestVersion())
+	// Tree should now be at version 2
+	assert.Equal(t, types.Version(2), tree.GetLatestVersion())
 
 	// Original key should still work
 	retrieved, err := tree.Get(v1, key1)

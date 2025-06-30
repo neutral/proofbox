@@ -133,4 +133,3 @@ func DecodeInternalNode(data []byte, version types.Version) (types.InternalNodeI
 func InternalNodeSize(node types.InternalNodeInterface) int {
 	return 1 + node.NumChildren()*42
 }
-

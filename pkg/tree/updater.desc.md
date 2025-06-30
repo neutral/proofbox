@@ -35,12 +35,32 @@ TreeUpdater encapsulates the complex logic of tree modifications, managing:
 
 4. **Version Immutability**: Each operation creates new nodes at the new version, preserving historical state.
 
-## Current Limitations (Step 09)
+## Single-Child Chains (Important Design Decision)
 
-- Only supports empty tree insertion and single-key updates
-- Leaf splitting not implemented
-- Internal node updates not implemented
-- These will be added in subsequent implementation steps
+When inserting keys with long common prefixes, this implementation creates chains of single-child internal nodes. This is **intentional behavior** following the JMT specification, not a bug or inefficiency.
+
+Example: Two keys differing only in their last nibble will create 63 internal nodes, each with one child, before the final divergence node with two children.
+
+This design choice prioritizes:
+- Implementation simplicity
+- Specification compliance  
+- Correctness over optimization
+
+
+### Why This is Acceptable
+
+1. **JMT Specification**: Explicitly rejects extension nodes for simplicity
+2. **Random Keys**: In blockchain use cases, keys are hashes with uniform distribution
+3. **Rare in Practice**: Long common prefixes are statistically improbable with hash-based keys
+4. **Trade-off**: Simplicity and correctness outweigh the inefficiency in edge cases
+
+## Known Limitations
+
+1. **Deep Trees**: Keys with very long common prefixes can create trees approaching MaxTreeDepth (64 levels)
+2. **Memory Usage**: Single-child chains use more memory than strictly necessary
+3. **No Path Compression**: Unlike Patricia tries, we don't compress single-child paths
+
+These are acceptable trade-offs per the JMT specification's philosophy of "simplicity over optimization".
 
 ## Thread Safety
 

@@ -60,15 +60,15 @@ func (b *BatchEncoder) Reset() {
 
 // BatchDecoder decodes nodes from a batch
 type BatchDecoder struct {
-	data  []byte
-	pos   int
+	data []byte
+	pos  int
 }
 
 // NewBatchDecoder creates a new batch decoder
 func NewBatchDecoder(data []byte) *BatchDecoder {
 	return &BatchDecoder{
-		data:  data,
-		pos:   0,
+		data: data,
+		pos:  0,
 	}
 }
 
@@ -125,4 +125,3 @@ func (d *BatchDecoder) Next() (types.NodeKey, types.Node, error) {
 func (d *BatchDecoder) HasMore() bool {
 	return d.pos < len(d.data)
 }
-
