@@ -200,3 +200,31 @@ func (t *Tree) validateKey(key types.Key) error {
 	}
 	return nil
 }
+
+// GetNode implements TreeReaderInterface
+func (r *TreeReader) GetNode(key types.NodeKey) (types.Node, error) {
+	return r.loadNode(key)
+}
+
+// LoadValue implements TreeReaderInterface
+func (r *TreeReader) LoadValue(hash types.Hash) ([]byte, error) {
+	return r.loadValue(hash)
+}
+
+// RootHash implements TreeReaderInterface
+func (r *TreeReader) RootHash() types.Hash {
+	return r.rootHash
+}
+
+// Version implements TreeReaderInterface
+func (r *TreeReader) Version() types.Version {
+	return r.version
+}
+
+// Close releases the snapshot
+func (r *TreeReader) Close() error {
+	if r.snapshot != nil {
+		return r.snapshot.Close()
+	}
+	return nil
+}

@@ -69,6 +69,11 @@ func NewTree(db *pebble.DB, config TreeConfig) (*Tree, error) {
 		return nil, WrapError(err, "failed to load root hashes")
 	}
 
+	// If this is a new tree (no versions loaded), initialize with version 0
+	if tree.latestVer == 0 && len(tree.rootHashes) == 0 {
+		tree.rootHashes[0] = types.EmptyHash()
+	}
+
 	return tree, nil
 }
 
@@ -145,4 +150,26 @@ func (t *Tree) loadRootHashes() error {
 	}
 
 	return iter.Error()
+}
+
+// Reader creates a new TreeReader for the specified version
+func (t *Tree) Reader(version types.Version) (TreeReaderInterface, error) {
+	// Validate version exists
+	t.mu.RLock()
+	rootHash, exists := t.rootHashes[version]
+	t.mu.RUnlock()
+	
+	if !exists {
+		return nil, types.ErrVersionNotFound
+	}
+	
+	// Create snapshot for consistent read
+	snapshot := t.db.NewSnapshot()
+	
+	return &TreeReader{
+		tree:     t,
+		snapshot: snapshot,
+		version:  version,
+		rootHash: rootHash,
+	}, nil
 }
