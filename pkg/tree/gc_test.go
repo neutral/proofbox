@@ -30,7 +30,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 		// Create pending versions
 		pending1, err := tree.BeginVersion()
 		require.NoError(t, err)
-		
+
 		pending2, err := tree.BeginVersion()
 		require.NoError(t, err)
 
@@ -42,14 +42,14 @@ func TestGCWithPendingVersions(t *testing.T) {
 		// Verify pending versions still work
 		err = tree.PutVersioned(pending1, types.KeyHash([]byte("pending1")), []byte("value1"))
 		assert.NoError(t, err)
-		
+
 		err = tree.PutVersioned(pending2, types.KeyHash([]byte("pending2")), []byte("value2"))
 		assert.NoError(t, err)
 
 		// Commit pending versions
 		err = tree.CommitVersion(pending1)
 		assert.NoError(t, err)
-		
+
 		err = tree.CommitVersion(pending2)
 		assert.NoError(t, err)
 	})
@@ -59,7 +59,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 		db2 := createTestDB(t)
 		tree2, err := NewTree(db2, DefaultTreeConfig())
 		require.NoError(t, err)
-		
+
 		tree2.SetVersionRetentionPolicy(RetentionPolicyCount, 1, 0) // Keep only 1 version
 
 		// Create multiple versions
@@ -84,7 +84,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 		versions := tree2.versionManager.GetAllVersions()
 		// Should have version 0 (initial) + 1 retained version
 		assert.LessOrEqual(t, len(versions), 2)
-		
+
 		// Current version should be retained
 		found := false
 		for _, v := range versions {
@@ -100,7 +100,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 		db3 := createTestDB(t)
 		tree3, err := NewTree(db3, DefaultTreeConfig())
 		require.NoError(t, err)
-		
+
 		tree3.SetVersionRetentionPolicy(RetentionPolicyCount, 2, 0)
 
 		// Create and abort some versions
@@ -247,7 +247,7 @@ func TestGCMemoryReclamation(t *testing.T) {
 		db2 := createTestDB(t)
 		tree2, err := NewTree(db2, DefaultTreeConfig())
 		require.NoError(t, err)
-		
+
 		tree2.SetVersionRetentionPolicy(RetentionPolicyCount, 5, 0)
 
 		// Create versions
@@ -302,20 +302,20 @@ func TestGCConcurrentOperations(t *testing.T) {
 						errors <- err
 						return
 					}
-					
+
 					key := types.KeyHash([]byte(fmt.Sprintf("concurrent-%d", i)))
 					err = tree.PutVersioned(v, key, []byte("value"))
 					if err != nil {
 						errors <- err
 						return
 					}
-					
+
 					err = tree.CommitVersion(v)
 					if err != nil {
 						errors <- err
 						return
 					}
-					
+
 					time.Sleep(5 * time.Millisecond)
 				}
 			}
@@ -325,7 +325,7 @@ func TestGCConcurrentOperations(t *testing.T) {
 		go func() {
 			for i := 0; i < 10; i++ {
 				time.Sleep(25 * time.Millisecond)
-				
+
 				_, err := tree.CollectVersionGarbage()
 				if err != nil {
 					errors <- err

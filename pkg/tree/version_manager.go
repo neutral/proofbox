@@ -40,6 +40,11 @@ type PendingVersion struct {
 	operations int
 }
 
+// GetUpdater returns the tree updater for this pending version
+func (pv *PendingVersion) GetUpdater() *TreeUpdater {
+	return pv.updater
+}
+
 // VersionRetentionPolicy defines how versions are retained
 type VersionRetentionPolicy int
 
@@ -59,11 +64,11 @@ type VersionManager struct {
 	latestVersion    types.Version
 	committedVersion types.Version
 	pendingWrites    map[types.Version]*PendingVersion
-	
+
 	// Garbage collection settings
 	retentionPolicy   VersionRetentionPolicy
-	minVersionsToKeep int               // Minimum versions to retain
-	maxAge            time.Duration     // For time-based retention
+	minVersionsToKeep int           // Minimum versions to retain
+	maxAge            time.Duration // For time-based retention
 }
 
 // NewVersionManager creates a new version manager
@@ -80,7 +85,7 @@ func NewVersionManagerWithRetention(policy VersionRetentionPolicy, minVersions i
 		minVersionsToKeep: minVersions,
 		maxAge:            maxAge,
 	}
-	
+
 	// Initialize with version 0
 	vm.versions[types.InitialVersion] = &VersionInfo{
 		Version:       types.InitialVersion,
@@ -90,7 +95,7 @@ func NewVersionManagerWithRetention(policy VersionRetentionPolicy, minVersions i
 		Status:        VersionStatusCommitted,
 	}
 	vm.committedVersion = types.InitialVersion
-	
+
 	return vm
 }
 
@@ -98,37 +103,37 @@ func NewVersionManagerWithRetention(policy VersionRetentionPolicy, minVersions i
 func (vm *VersionManager) Begin(parentVersion types.Version) (types.Version, error) {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	// Validate parent version exists
 	parent, exists := vm.versions[parentVersion]
 	if !exists {
 		return 0, fmt.Errorf("parent version %d not found", parentVersion)
 	}
-	
+
 	if parent.Status != VersionStatusCommitted {
 		return 0, fmt.Errorf("parent version %d not committed", parentVersion)
 	}
-	
+
 	// Check for version overflow
 	if vm.latestVersion == types.MaxVersion {
 		return 0, fmt.Errorf("version overflow: cannot create version after %d", vm.latestVersion)
 	}
-	
+
 	// Allocate new version number
 	newVersion := vm.latestVersion + 1
-	
+
 	// Create pending version
 	pending := &PendingVersion{
 		version:   newVersion,
 		parent:    parentVersion,
 		startTime: time.Now(),
 	}
-	
+
 	// Note: TreeUpdater will be initialized when tree operations begin
-	
+
 	vm.pendingWrites[newVersion] = pending
 	vm.latestVersion = newVersion
-	
+
 	return newVersion, nil
 }
 
@@ -136,12 +141,12 @@ func (vm *VersionManager) Begin(parentVersion types.Version) (types.Version, err
 func (vm *VersionManager) Commit(version types.Version, rootHash types.Hash, nodeCount int64) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	pending, exists := vm.pendingWrites[version]
 	if !exists {
 		return fmt.Errorf("no pending version %d", version)
 	}
-	
+
 	// Create version info
 	info := &VersionInfo{
 		Version:       version,
@@ -151,15 +156,15 @@ func (vm *VersionManager) Commit(version types.Version, rootHash types.Hash, nod
 		NodeCount:     nodeCount,
 		Status:        VersionStatusCommitted,
 	}
-	
+
 	vm.versions[version] = info
 	delete(vm.pendingWrites, version)
-	
+
 	// Update committed version if this is latest
 	if version > vm.committedVersion {
 		vm.committedVersion = version
 	}
-	
+
 	return nil
 }
 
@@ -167,14 +172,14 @@ func (vm *VersionManager) Commit(version types.Version, rootHash types.Hash, nod
 func (vm *VersionManager) Abort(version types.Version) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	pending, exists := vm.pendingWrites[version]
 	if !exists {
 		return fmt.Errorf("no pending version %d", version)
 	}
-	
+
 	delete(vm.pendingWrites, version)
-	
+
 	// Mark as aborted
 	vm.versions[version] = &VersionInfo{
 		Version:       version,
@@ -182,7 +187,7 @@ func (vm *VersionManager) Abort(version types.Version) error {
 		Status:        VersionStatusAborted,
 		CreatedAt:     pending.startTime,
 	}
-	
+
 	return nil
 }
 
@@ -190,12 +195,12 @@ func (vm *VersionManager) Abort(version types.Version) error {
 func (vm *VersionManager) GetVersion(version types.Version) (*VersionInfo, error) {
 	vm.mu.RLock()
 	defer vm.mu.RUnlock()
-	
+
 	info, exists := vm.versions[version]
 	if !exists {
 		return nil, fmt.Errorf("version %d not found", version)
 	}
-	
+
 	return info, nil
 }
 
@@ -217,12 +222,12 @@ func (vm *VersionManager) GetPending(version types.Version) *PendingVersion {
 func (vm *VersionManager) SetPendingUpdater(version types.Version, updater *TreeUpdater) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	pending, exists := vm.pendingWrites[version]
 	if !exists {
 		return fmt.Errorf("no pending version %d", version)
 	}
-	
+
 	pending.updater = updater
 	return nil
 }
@@ -231,12 +236,12 @@ func (vm *VersionManager) SetPendingUpdater(version types.Version, updater *Tree
 func (vm *VersionManager) GetAllVersions() []*VersionInfo {
 	vm.mu.RLock()
 	defer vm.mu.RUnlock()
-	
+
 	result := make([]*VersionInfo, 0, len(vm.versions))
 	for _, info := range vm.versions {
 		result = append(result, info)
 	}
-	
+
 	// Sort by version number
 	for i := 0; i < len(result); i++ {
 		for j := i + 1; j < len(result); j++ {
@@ -245,7 +250,7 @@ func (vm *VersionManager) GetAllVersions() []*VersionInfo {
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -253,11 +258,11 @@ func (vm *VersionManager) GetAllVersions() []*VersionInfo {
 func (vm *VersionManager) CollectGarbage() ([]types.Version, error) {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	if vm.retentionPolicy == RetentionPolicyNone {
 		return nil, nil
 	}
-	
+
 	// Get all committed versions
 	var committedVersions []types.Version
 	for v, info := range vm.versions {
@@ -265,23 +270,23 @@ func (vm *VersionManager) CollectGarbage() ([]types.Version, error) {
 			committedVersions = append(committedVersions, v)
 		}
 	}
-	
+
 	// Sort versions
 	sort.Slice(committedVersions, func(i, j int) bool {
 		return committedVersions[i] < committedVersions[j]
 	})
-	
+
 	// Determine which versions to remove
 	var toRemove []types.Version
 	now := time.Now()
-	
+
 	switch vm.retentionPolicy {
 	case RetentionPolicyCount:
 		// Keep only the last N versions
 		if len(committedVersions) > vm.minVersionsToKeep {
 			toRemove = committedVersions[:len(committedVersions)-vm.minVersionsToKeep]
 		}
-		
+
 	case RetentionPolicyTime:
 		// Remove versions older than maxAge
 		for _, v := range committedVersions {
@@ -290,13 +295,13 @@ func (vm *VersionManager) CollectGarbage() ([]types.Version, error) {
 				toRemove = append(toRemove, v)
 			}
 		}
-		
+
 		// But always keep minimum number
 		if len(committedVersions)-len(toRemove) < vm.minVersionsToKeep {
 			toRemove = toRemove[:len(committedVersions)-vm.minVersionsToKeep]
 		}
 	}
-	
+
 	// Never remove the current committed version
 	filtered := make([]types.Version, 0, len(toRemove))
 	for _, v := range toRemove {
@@ -305,12 +310,12 @@ func (vm *VersionManager) CollectGarbage() ([]types.Version, error) {
 		}
 	}
 	toRemove = filtered
-	
+
 	// Remove the versions
 	for _, v := range toRemove {
 		delete(vm.versions, v)
 	}
-	
+
 	return toRemove, nil
 }
 
@@ -318,7 +323,7 @@ func (vm *VersionManager) CollectGarbage() ([]types.Version, error) {
 func (vm *VersionManager) SetRetentionPolicy(policy VersionRetentionPolicy, minVersions int, maxAge time.Duration) {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	vm.retentionPolicy = policy
 	vm.minVersionsToKeep = minVersions
 	vm.maxAge = maxAge
@@ -328,24 +333,24 @@ func (vm *VersionManager) SetRetentionPolicy(policy VersionRetentionPolicy, minV
 func (vm *VersionManager) RemoveVersion(version types.Version) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	_, exists := vm.versions[version]
 	if !exists {
 		return fmt.Errorf("version %d not found", version)
 	}
-	
+
 	// Don't allow removing the committed version
 	if version == vm.committedVersion {
 		return fmt.Errorf("cannot remove committed version %d", version)
 	}
-	
+
 	// Don't allow removing if it's a parent of existing versions
 	for _, v := range vm.versions {
 		if v.ParentVersion == version && v.Version != version {
 			return fmt.Errorf("version %d is parent of version %d", version, v.Version)
 		}
 	}
-	
+
 	delete(vm.versions, version)
 	return nil
 }
@@ -354,12 +359,12 @@ func (vm *VersionManager) RemoveVersion(version types.Version) error {
 func (vm *VersionManager) IncrementOperations(version types.Version) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	pending, exists := vm.pendingWrites[version]
 	if !exists {
 		return fmt.Errorf("no pending version %d", version)
 	}
-	
+
 	pending.operations++
 	return nil
 }

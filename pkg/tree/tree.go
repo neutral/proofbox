@@ -29,24 +29,28 @@ type Tree struct {
 
 	// Configuration
 	config TreeConfig // Tree configuration
-	
+
 	// Version manager
 	versionManager *VersionManager // Manages version lifecycle
 }
 
 // TreeConfig holds configuration options
 type TreeConfig struct {
-	CacheSize      int  // Number of nodes to cache (default: 10000)
-	MaxBatchSize   int  // Maximum operations per batch (default: 1000)
-	MetricsEnabled bool // Enable metrics collection
+	CacheSize           int             // Number of nodes to cache (default: 10000)
+	MaxBatchSize        int             // Maximum operations per batch (default: 1000)
+	MetricsEnabled      bool            // Enable metrics collection
+	BatchOptimizer      *BatchOptimizer // Batch optimization settings
+	UseParallelBatching bool            // Use parallel batch processing for large batches
 }
 
 // DefaultTreeConfig returns default configuration
 func DefaultTreeConfig() TreeConfig {
 	return TreeConfig{
-		CacheSize:      10000,
-		MaxBatchSize:   1000,
-		MetricsEnabled: true,
+		CacheSize:           10000,
+		MaxBatchSize:        1000,
+		MetricsEnabled:      true,
+		BatchOptimizer:      NewBatchOptimizer(DefaultBatchOptimizerConfig()),
+		UseParallelBatching: true,
 	}
 }
 
@@ -56,7 +60,7 @@ func (t *Tree) loadNodeFromStorage(key types.NodeKey) (types.Node, error) {
 	if node, found := t.nodeCache.Get(key); found {
 		return node, nil
 	}
-	
+
 	// Load from storage
 	storageKey := makeNodeKey(key)
 	data, closer, err := t.db.Get(storageKey)
@@ -67,20 +71,20 @@ func (t *Tree) loadNodeFromStorage(key types.NodeKey) (types.Node, error) {
 		return nil, fmt.Errorf("failed to load node: %w", err)
 	}
 	defer closer.Close()
-	
+
 	// Copy data before closing
 	dataCopy := make([]byte, len(data))
 	copy(dataCopy, data)
-	
+
 	// Decode node
 	node, err := codec.DecodeNode(dataCopy, key.Version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode node: %w", err)
 	}
-	
+
 	// Cache the node
 	t.nodeCache.Put(key, node)
-	
+
 	return node, nil
 }
 
@@ -229,14 +233,14 @@ func (t *Tree) Reader(version types.Version) (TreeReaderInterface, error) {
 	t.mu.RLock()
 	rootHash, exists := t.rootHashes[version]
 	t.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, types.ErrVersionNotFound
 	}
-	
+
 	// Create snapshot for consistent read
 	snapshot := t.db.NewSnapshot()
-	
+
 	return &TreeReader{
 		tree:     t,
 		snapshot: snapshot,
@@ -263,16 +267,16 @@ func (t *Tree) PutVersioned(version types.Version, key types.Key, value []byte) 
 	if err := t.validateValue(value); err != nil {
 		return fmt.Errorf("invalid value: %w", err)
 	}
-	
+
 	t.writeMu.Lock()
 	defer t.writeMu.Unlock()
-	
+
 	// Get pending version
 	pending := t.versionManager.GetPending(version)
 	if pending == nil {
 		return fmt.Errorf("version %d not pending", version)
 	}
-	
+
 	// Initialize updater if needed
 	if pending.updater == nil {
 		updater := NewTreeUpdater(t, pending.parent, version)
@@ -281,16 +285,16 @@ func (t *Tree) PutVersioned(version types.Version, key types.Key, value []byte) 
 		}
 		pending = t.versionManager.GetPending(version)
 	}
-	
+
 	// Perform update
 	_, err := pending.updater.Put(key, value)
 	if err != nil {
 		return fmt.Errorf("put failed: %w", err)
 	}
-	
+
 	// Track operation
 	t.versionManager.IncrementOperations(version)
-	
+
 	return nil
 }
 
@@ -303,16 +307,16 @@ func (t *Tree) DeleteVersioned(version types.Version, key types.Key) error {
 	if err := t.validateKey(key); err != nil {
 		return fmt.Errorf("invalid key: %w", err)
 	}
-	
+
 	t.writeMu.Lock()
 	defer t.writeMu.Unlock()
-	
+
 	// Get pending version
 	pending := t.versionManager.GetPending(version)
 	if pending == nil {
 		return fmt.Errorf("version %d not pending", version)
 	}
-	
+
 	// Initialize updater if needed
 	if pending.updater == nil {
 		updater := NewTreeUpdater(t, pending.parent, version)
@@ -321,16 +325,16 @@ func (t *Tree) DeleteVersioned(version types.Version, key types.Key) error {
 		}
 		pending = t.versionManager.GetPending(version)
 	}
-	
+
 	// Perform delete
 	err := pending.updater.Delete(key)
 	if err != nil {
 		return fmt.Errorf("delete failed: %w", err)
 	}
-	
+
 	// Track operation
 	t.versionManager.IncrementOperations(version)
-	
+
 	return nil
 }
 
@@ -338,17 +342,17 @@ func (t *Tree) DeleteVersioned(version types.Version, key types.Key) error {
 func (t *Tree) GetAtVersion(version types.Version, key types.Key) ([]byte, error) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	// Get version info
 	info, err := t.versionManager.GetVersion(version)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if info.Status != VersionStatusCommitted {
 		return nil, fmt.Errorf("version %d not committed", version)
 	}
-	
+
 	// Use existing Get method
 	return t.Get(version, key)
 }
@@ -357,12 +361,12 @@ func (t *Tree) GetAtVersion(version types.Version, key types.Key) ([]byte, error
 func (t *Tree) CommitVersion(version types.Version) error {
 	t.writeMu.Lock()
 	defer t.writeMu.Unlock()
-	
+
 	pending := t.versionManager.GetPending(version)
 	if pending == nil {
 		return fmt.Errorf("version %d not pending", version)
 	}
-	
+
 	// Handle empty version (no operations performed)
 	if pending.updater == nil {
 		// No changes made, just update version metadata
@@ -374,7 +378,7 @@ func (t *Tree) CommitVersion(version types.Version) error {
 				rootHash = parentHash
 			}
 		}
-		
+
 		// Update in-memory state
 		t.mu.Lock()
 		t.rootHashes[version] = rootHash
@@ -382,36 +386,50 @@ func (t *Tree) CommitVersion(version types.Version) error {
 			t.latestVer = version
 		}
 		t.mu.Unlock()
-		
+
 		// Update version manager
 		return t.versionManager.Commit(version, rootHash, 0)
 	}
-	
+
 	// Build update batch
-	batch, err := pending.updater.BuildUpdateBatch()
+	var batch *UpdateBatch
+	var err error
+	if t.config.UseParallelBatching {
+		batch, err = pending.updater.BuildUpdateBatchParallel()
+	} else {
+		batch, err = pending.updater.BuildUpdateBatch()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to build batch: %w", err)
 	}
-	
+
+	// Apply batch optimization if configured
+	if t.config.BatchOptimizer != nil {
+		batch, err = t.config.BatchOptimizer.OptimizeBatch(batch)
+		if err != nil {
+			return fmt.Errorf("failed to optimize batch: %w", err)
+		}
+	}
+
 	// Write to storage atomically
 	writeBatch := t.db.NewBatch()
 	defer writeBatch.Close()
-	
+
 	// Create codec
 	nodeCodec := &codec.NodeCodec{}
-	
+
 	// Write all new nodes
 	for _, nodeWrite := range batch.NewNodes {
 		data, err := nodeCodec.EncodeNode(nodeWrite.Node)
 		if err != nil {
 			return fmt.Errorf("failed to encode node: %w", err)
 		}
-		
+
 		storageKey := makeNodeKey(nodeWrite.Key)
 		if err := writeBatch.Set(storageKey, data, nil); err != nil {
 			return fmt.Errorf("failed to write node: %w", err)
 		}
-		
+
 		// If it's a leaf node, also store the value
 		if leaf, ok := nodeWrite.Node.(*LeafNode); ok && leaf.Value() != nil {
 			valueKey := makeValueKey(leaf.ValueHash())
@@ -420,13 +438,13 @@ func (t *Tree) CommitVersion(version types.Version) error {
 			}
 		}
 	}
-	
+
 	// Write root hash
 	rootKey := makeRootKey(version)
 	if err := writeBatch.Set(rootKey, batch.NewRootHash[:], nil); err != nil {
 		return fmt.Errorf("failed to write root: %w", err)
 	}
-	
+
 	// Prepare in-memory state updates (but don't apply yet)
 	t.mu.RLock()
 	newRootHashes := make(map[types.Version]types.Hash, len(t.rootHashes)+1)
@@ -435,25 +453,25 @@ func (t *Tree) CommitVersion(version types.Version) error {
 	}
 	currentLatestVer := t.latestVer
 	t.mu.RUnlock()
-	
+
 	newRootHashes[version] = batch.NewRootHash
-	
+
 	newLatestVer := currentLatestVer
 	if version > newLatestVer {
 		newLatestVer = version
 	}
-	
+
 	// Commit to storage
 	if err := writeBatch.Commit(pebble.Sync); err != nil {
 		return fmt.Errorf("storage commit failed: %w", err)
 	}
-	
+
 	// Storage commit succeeded, now update in-memory state atomically
 	t.mu.Lock()
 	t.rootHashes = newRootHashes
 	t.latestVer = newLatestVer
 	t.mu.Unlock()
-	
+
 	// Update version manager (this should not fail)
 	nodeCount := int64(len(batch.NewNodes))
 	if err := t.versionManager.Commit(version, batch.NewRootHash, nodeCount); err != nil {
@@ -462,7 +480,7 @@ func (t *Tree) CommitVersion(version types.Version) error {
 		// TODO: Add proper logging
 		_ = err
 	}
-	
+
 	return nil
 }
 
@@ -479,22 +497,32 @@ func (t *Tree) CollectVersionGarbage() ([]types.Version, error) {
 	if err != nil {
 		return nil, fmt.Errorf("version GC failed: %w", err)
 	}
-	
+
 	// Remove from in-memory root hash cache
 	t.mu.Lock()
 	for _, v := range removed {
 		delete(t.rootHashes, v)
 	}
 	t.mu.Unlock()
-	
+
 	// Note: We don't remove the actual tree nodes from storage
 	// That would require a more complex pruning operation
 	// For now, we just remove the version metadata
-	
+
 	return removed, nil
 }
 
 // SetVersionRetentionPolicy updates how versions are retained
 func (t *Tree) SetVersionRetentionPolicy(policy VersionRetentionPolicy, minVersions int, maxAge time.Duration) {
 	t.versionManager.SetRetentionPolicy(policy, minVersions, maxAge)
+}
+
+// NewBatchTransaction creates a new batch transaction for atomic multi-operation updates
+func (t *Tree) NewBatchTransaction() *BatchTransaction {
+	return NewBatchTransaction(t)
+}
+
+// GetVersionManager returns the version manager (for internal/testing use)
+func (t *Tree) GetVersionManager() *VersionManager {
+	return t.versionManager
 }

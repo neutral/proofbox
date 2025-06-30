@@ -34,10 +34,10 @@ func TestVersionValidation(t *testing.T) {
 	t.Run("CommittedVersion", func(t *testing.T) {
 		v, err := tree.BeginVersion()
 		require.NoError(t, err)
-		
+
 		err = tree.PutVersioned(v, types.KeyHash([]byte("key")), []byte("value"))
 		require.NoError(t, err)
-		
+
 		err = tree.CommitVersion(v)
 		require.NoError(t, err)
 
@@ -56,7 +56,7 @@ func TestVersionValidation(t *testing.T) {
 	t.Run("AbortedVersion", func(t *testing.T) {
 		v, err := tree.BeginVersion()
 		require.NoError(t, err)
-		
+
 		err = tree.AbortVersion(v)
 		require.NoError(t, err)
 
@@ -237,7 +237,7 @@ func TestBatchOperationsInVersion(t *testing.T) {
 		// Make changes
 		err = tree.PutVersioned(v2, initialKey, []byte("modified-value"))
 		require.NoError(t, err)
-		
+
 		newKey := types.KeyHash([]byte("new-key"))
 		err = tree.PutVersioned(v2, newKey, []byte("new-value"))
 		require.NoError(t, err)
@@ -328,7 +328,7 @@ func TestDeepTreeVersioning(t *testing.T) {
 		// Use keys with common prefix but different at the end
 		key1 := types.Key{}
 		key2 := types.Key{}
-		
+
 		// Set up keys that differ only in the last byte
 		// Fill with a pattern to ensure non-zero key
 		for i := 0; i < 31; i++ {
@@ -341,13 +341,13 @@ func TestDeepTreeVersioning(t *testing.T) {
 		// Insert keys
 		v1, err := tree.BeginVersion()
 		require.NoError(t, err)
-		
+
 		err = tree.PutVersioned(v1, key1, []byte("deep-value-1"))
 		require.NoError(t, err)
-		
+
 		err = tree.PutVersioned(v1, key2, []byte("deep-value-2"))
 		require.NoError(t, err)
-		
+
 		err = tree.CommitVersion(v1)
 		require.NoError(t, err)
 
@@ -363,10 +363,10 @@ func TestDeepTreeVersioning(t *testing.T) {
 		// Update one key in new version
 		v2, err := tree.BeginVersion()
 		require.NoError(t, err)
-		
+
 		err = tree.PutVersioned(v2, key1, []byte("deep-value-1-updated"))
 		require.NoError(t, err)
-		
+
 		err = tree.CommitVersion(v2)
 		require.NoError(t, err)
 
@@ -380,4 +380,3 @@ func TestDeepTreeVersioning(t *testing.T) {
 		assert.Equal(t, []byte("deep-value-2"), got2v2) // Unchanged
 	})
 }
-

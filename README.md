@@ -23,6 +23,24 @@ make test
 make lint
 ```
 
+## Interactive Examples
+
+Explore ProofBox features through interactive examples:
+
+```bash
+# Run all examples
+./examples/run_all.sh
+
+# Run a specific example
+cd examples && go run example_batch_basic.go examples_utils.go
+```
+
+See the [examples directory](examples/) for:
+- Batch operations and transactions
+- Performance optimizations
+- Concurrent operations
+- And more...
+
 ## Project Structure
 
 ```
@@ -34,6 +52,7 @@ make lint
 │   ├── tree/        # Core tree implementation
 │   └── types/       # Common types
 ├── internal/        # Internal packages
+├── examples/        # Interactive examples
 └── blueprint/       # Design specifications
 ```
 

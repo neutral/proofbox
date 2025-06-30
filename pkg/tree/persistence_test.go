@@ -22,7 +22,7 @@ func TestVersionPersistence(t *testing.T) {
 		opts := &pebble.Options{}
 		db1, err := pebble.Open(dbPath, opts)
 		require.NoError(t, err)
-		
+
 		tree1, err := NewTree(db1, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -43,7 +43,7 @@ func TestVersionPersistence(t *testing.T) {
 		db2, err := pebble.Open(dbPath, opts)
 		require.NoError(t, err)
 		defer db2.Close()
-		
+
 		tree2, err := NewTree(db2, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -68,11 +68,11 @@ func TestVersionPersistence(t *testing.T) {
 		// Create fresh DB
 		tmpDir2 := t.TempDir()
 		dbPath2 := filepath.Join(tmpDir2, "pending.db")
-		
+
 		opts := &pebble.Options{}
 		db1, err := pebble.Open(dbPath2, opts)
 		require.NoError(t, err)
-		
+
 		tree1, err := NewTree(db1, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -88,7 +88,7 @@ func TestVersionPersistence(t *testing.T) {
 
 		pending2, err := tree1.BeginVersion()
 		require.NoError(t, err)
-		
+
 		// Close without committing
 		db1.Close()
 
@@ -96,7 +96,7 @@ func TestVersionPersistence(t *testing.T) {
 		db2, err := pebble.Open(dbPath2, opts)
 		require.NoError(t, err)
 		defer db2.Close()
-		
+
 		tree2, err := NewTree(db2, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -123,11 +123,11 @@ func TestVersionPersistence(t *testing.T) {
 		// Create fresh DB
 		tmpDir3 := t.TempDir()
 		dbPath3 := filepath.Join(tmpDir3, "state.db")
-		
+
 		opts := &pebble.Options{}
 		db1, err := pebble.Open(dbPath3, opts)
 		require.NoError(t, err)
-		
+
 		tree1, err := NewTree(db1, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -152,7 +152,7 @@ func TestVersionPersistence(t *testing.T) {
 		db2, err := pebble.Open(dbPath3, opts)
 		require.NoError(t, err)
 		defer db2.Close()
-		
+
 		tree2, err := NewTree(db2, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -175,14 +175,14 @@ func TestCrashRecovery(t *testing.T) {
 	t.Run("CrashDuringCommit", func(t *testing.T) {
 		// This test simulates a crash during commit by not completing the operation
 		// In real scenario, PebbleDB's WAL ensures atomicity
-		
+
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "crash.db")
-		
+
 		opts := &pebble.Options{}
 		db, err := pebble.Open(dbPath, opts)
 		require.NoError(t, err)
-		
+
 		tree, err := NewTree(db, DefaultTreeConfig())
 		require.NoError(t, err)
 
@@ -193,30 +193,30 @@ func TestCrashRecovery(t *testing.T) {
 		// Start new version
 		v2, err := tree.BeginVersion()
 		require.NoError(t, err)
-		
+
 		err = tree.PutVersioned(v2, types.KeyHash([]byte("crash-key")), []byte("crash-value"))
 		require.NoError(t, err)
 
 		// Simulate partial commit by manually building batch
 		pending := tree.versionManager.GetPending(v2)
 		require.NotNil(t, pending)
-		
+
 		batch, err := pending.updater.BuildUpdateBatch()
 		require.NoError(t, err)
 
 		// Write nodes but don't write root hash (simulating crash)
 		writeBatch := db.NewBatch()
 		nodeCodec := &codec.NodeCodec{}
-		
+
 		for _, nodeWrite := range batch.NewNodes {
 			data, err := nodeCodec.EncodeNode(nodeWrite.Node)
 			require.NoError(t, err)
-			
+
 			storageKey := makeNodeKey(nodeWrite.Key)
 			err = writeBatch.Set(storageKey, data, nil)
 			require.NoError(t, err)
 		}
-		
+
 		// Commit partial write (no root hash)
 		err = writeBatch.Commit(pebble.Sync)
 		require.NoError(t, err)
@@ -228,7 +228,7 @@ func TestCrashRecovery(t *testing.T) {
 		db2, err := pebble.Open(dbPath, opts)
 		require.NoError(t, err)
 		defer db2.Close()
-		
+
 		tree2, err := NewTree(db2, DefaultTreeConfig())
 		require.NoError(t, err)
 

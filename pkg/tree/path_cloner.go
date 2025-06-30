@@ -2,7 +2,7 @@ package tree
 
 import (
 	"fmt"
-	
+
 	"github.com/neutral/proofbox/pkg/types"
 )
 
@@ -40,34 +40,34 @@ func (pc *PathCloner) ClonePath(path []types.NodeKey) error {
 	// Clone from leaf to root
 	for i := len(path) - 1; i >= 0; i-- {
 		oldKey := path[i]
-		
+
 		// Check if already cloned
 		if _, cloned := pc.IsCloned(oldKey); cloned {
 			continue
 		}
-		
+
 		// Load node
 		node, err := pc.tree.loadNodeFromStorage(oldKey)
 		if err != nil {
 			return err
 		}
-		
+
 		// Clone node with new version
 		cloneable, ok := node.(types.NodeCloneable)
 		if !ok {
 			return fmt.Errorf("node does not support cloning")
 		}
 		clonedNode := cloneable.Clone(pc.targetVersion)
-		
+
 		// Create new key
 		newKey := types.NodeKey{
 			Version:    pc.targetVersion,
 			NibblePath: oldKey.NibblePath,
 		}
-		
+
 		// Register the clone
 		pc.RegisterClone(oldKey, newKey)
-		
+
 		// Handle internal nodes - update child references
 		if internal, ok := clonedNode.(*InternalNode); ok {
 			children := internal.Children()
@@ -87,6 +87,6 @@ func (pc *PathCloner) ClonePath(path []types.NodeKey) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
