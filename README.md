@@ -1,96 +1,172 @@
 # ProofBox
 
-ProofBox is a Go implementation of the Jellyfish Merkle Tree (JMT), a space-efficient sparse Merkle tree with support for versioned key-value storage and cryptographic proofs.
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.21-blue)](https://go.dev/)
+[![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](LICENSE.CC0-1.0)
+[![License: 0BSD](https://img.shields.io/badge/License-0BSD-brightgreen.svg)](LICENSE.0BSD)
+[![Go Reference](https://pkg.go.dev/badge/github.com/neutral/proofbox.svg)](https://pkg.go.dev/github.com/neutral/proofbox)
 
-## Features
+ProofBox is a high-performance Go implementation of the [Jellyfish Merkle Tree (JMT)](docs/explanation/jellyfish-merkle-tree.md), a space-efficient sparse Merkle tree optimized for verifiable storage systems.
 
-- **Versioned Storage**: Track multiple versions of key-value pairs
-- **Cryptographic Proofs**: Generate and verify inclusion/exclusion proofs
-- **Space Efficient**: Optimized storage using sparse tree techniques
-- **High Performance**: Designed for low-latency operations
-- **Production Ready**: Comprehensive testing and benchmarking
+## 🚀 Features
 
-## Quick Start
+- **🔄 Versioned Storage**: Maintain full history with efficient version management
+- **🔐 Cryptographic Proofs**: Generate and verify compact inclusion/exclusion proofs
+- **💾 Space Efficient**: Sparse tree design minimizes storage overhead
+- **⚡ High Performance**: Optimized for low-latency operations with batch support
+- **🛠️ Developer Friendly**: Clean API, comprehensive docs, and interactive REPL
+- **📊 Production Ready**: Extensive testing, benchmarks, and metrics support
 
-### Using the CLI
+## 📦 Installation
 
-ProofBox includes a powerful command-line interface (`pb`) for interacting with the Merkle tree:
+### Install the CLI
 
 ```bash
-# Install the CLI
 go install github.com/neutral/proofbox/cmd/pb@latest
+```
 
-# Create a database and store data
+### Use as a Library
+
+```bash
+go get github.com/neutral/proofbox
+```
+
+## 🚀 Quick Start
+
+### CLI Usage
+
+```bash
+# Create a new database
 pb init --db mydata.db
+
+# Store and retrieve data
 pb put "hello" "world" --db mydata.db
 pb get "hello" --db mydata.db
 
-# Generate and verify proofs
+# Generate cryptographic proofs
 pb prove "hello" --db mydata.db --output proof.json
 pb verify proof.json
+
+# Interactive REPL mode
+pb repl --db mydata.db
 ```
 
-See the [CLI documentation](cmd/pb/README.md) for detailed usage instructions, or check out the [Quick Start Guide](cmd/pb/QUICKSTART.md) and [Cheat Sheet](cmd/pb/CHEATSHEET.md).
+📖 See [CLI Quick Start](cmd/pb/QUICKSTART.md) • [CLI Cheat Sheet](cmd/pb/CHEATSHEET.md) • [Full Documentation](docs/index.md)
 
-### Building from Source
+### Library Usage
+
+```go
+import (
+    "github.com/neutral/proofbox/pkg/tree"
+    "github.com/neutral/proofbox/pkg/storage"
+)
+
+// Create storage and tree
+store, _ := storage.NewPebbleDB("/tmp/proofbox")
+jmt, _ := tree.New(store)
+
+// Store data
+batch := tree.NewUpdateBatch()
+batch.Put([]byte("key"), []byte("value"))
+rootHash, version, _ := jmt.CommitBatch(batch)
+
+// Generate proof
+proof, _ := jmt.GetProof([]byte("key"), version)
+```
+
+📖 See [Library Tutorial](docs/tutorials/library-tutorial.md) • [API Reference](docs/reference/api/)
+
+## 🏗️ Building from Source
 
 ```bash
-# Build the project
+# Clone the repository
+git clone https://github.com/neutral/proofbox.git
+cd proofbox
+
+# Build everything
 make
 
 # Run tests
 make test
 
-# Run linting
-make lint
+# Run benchmarks
+make bench-quick
 ```
 
-## Interactive Examples
+## 🎯 Examples
 
 Explore ProofBox features through interactive examples:
 
 ```bash
 # Run all examples
-./examples/run_all.sh
+cd docs/examples && ./run_all.sh
 
 # Run a specific example
-cd examples && go run example_batch_basic.go examples_utils.go
+cd docs/examples/batch_basic && go run .
 ```
 
-See the [examples directory](examples/) for:
-- Batch operations and transactions
-- Performance optimizations
-- Concurrent operations
-- And more...
+Available examples:
+- **Batch Operations**: Transactions, deduplication, validation
+- **Performance**: Parallel processing, optimization techniques
+- **Concurrency**: Thread-safe operations
+- **Internals**: Understanding the UpdateBatch structure
 
-## Project Structure
+📖 See [Examples Directory](docs/examples/) for full list
+
+## 📚 Documentation
+
+ProofBox has comprehensive documentation organized by use case:
+
+- **[Tutorials](docs/tutorials/)** - Step-by-step guides to get started
+- **[How-to Guides](docs/how-to/)** - Practical guides for specific tasks
+- **[API Reference](docs/reference/api/)** - Complete API documentation
+- **[Explanation](docs/explanation/)** - Understanding the concepts and design
+
+## 🏛️ Architecture
 
 ```
-├── cmd/
-│   └── pb/          # CLI application
-├── pkg/             # Public packages
-│   ├── crypto/      # Cryptographic functions
+proofbox/
+├── cmd/pb/          # CLI application
+├── pkg/             # Public API packages
+│   ├── tree/        # Core JMT implementation
 │   ├── proof/       # Proof generation/verification
-│   ├── storage/     # Storage abstraction
-│   ├── tree/        # Core tree implementation
-│   └── types/       # Common types
-├── internal/        # Internal packages
-├── examples/        # Interactive examples
+│   ├── storage/     # Storage abstraction layer
+│   ├── crypto/      # Cryptographic utilities
+│   └── types/       # Common types and interfaces
+├── internal/        # Internal implementation
+├── docs/            # Documentation and examples
 └── blueprint/       # Design specifications
 ```
 
-## Quick tips for developers
+Key design features:
+- **Radix-16 tree structure** for optimal proof size
+- **PebbleDB storage backend** for efficient disk usage
+- **Append-only versioning** for historical queries
+- **Batch operations** for improved throughput
 
-- **Stay in sync:** every meaningful change to requirements or design should update the relevant file in `blueprint/` before updating the codebase.
-- **Codebase documentation:** `blueprint/`is not a substitute for codebase documentation. Every source file needs to be accompanied by a description file clearly explaining its logic and relation to the information present in the `blueprint/` folder.
+📖 See [Architecture Overview](docs/explanation/architecture.md) for details
 
-## License
+## 🤝 Contributing
 
-The contents of this repository are released under a dual-license model, allowing you to choose **either** the **Creative Commons Zero v1.0 Universal** **or** the **Zero-Clause BSD (0BSD)** license. This applies to all materials in this project, including but not limited to source code, documentation, images, and data files.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-For the full text of each license, please see the following files in this repository:
+For developers:
+- Follow the blueprint-driven development process
+- Check `blueprint/` for requirements before implementing
+- Add `.desc.md` files for non-trivial code
+- Ensure all tests pass before submitting PRs
 
-- [CC0-1.0](LICENSE.CC0-1.0)
-- [0BSD](LICENSE.0BSD)
+## 📄 License
 
-All applicable files in this repository should include an `SPDX-License-Identifier` header indicating the `(CC0-1.0 OR 0BSD)` dual-license choice.
+ProofBox is released under a dual-license model. Choose either:
+- **[CC0-1.0](LICENSE.CC0-1.0)** - Creative Commons Zero v1.0 Universal
+- **[0BSD](LICENSE.0BSD)** - Zero-Clause BSD
+
+This applies to all project materials. Files include `SPDX-License-Identifier: (CC0-1.0 OR 0BSD)`.
+
+---
+
+<div align="center">
+  
+**[Get Started](docs/tutorials/getting-started.md)** • **[Documentation](docs/)** • **[Examples](docs/examples/)** • **[API Reference](docs/reference/api/)**
+
+</div>

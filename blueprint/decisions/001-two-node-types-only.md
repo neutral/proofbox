@@ -36,7 +36,7 @@ No extension nodes or other optimization node types will be used.
 - **Higher Memory Usage**: Internal nodes with single children still allocate full structure
 
 ### Neutral
-- Performance impact is minimal for typical blockchain use cases with random key distribution
+- Performance impact is minimal for typical use cases with random key distribution
 - The radix-16 branching factor already provides good height/width balance
 
 ## Implementation Details

@@ -1,7 +1,7 @@
 # Persistence and Reliability Specification
 
 ## Overview
-JMT's versioned, append-only design provides strong reliability and crash-safety guarantees essential for blockchain systems.
+JMT's versioned, append-only design provides strong reliability and crash-safety guarantees essential for distributed systems.
 
 ## Crash Safety Properties
 

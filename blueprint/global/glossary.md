@@ -7,7 +7,7 @@ tags: [reference]
 
 | Term              | Definition                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------- |
-| JMT               | **Jellyfish Merkle Tree** — 16‑way sparse Merkle trie used in Move‑based blockchains. |
+| JMT               | **Jellyfish Merkle Tree** — 16‑way sparse Merkle trie. |
 | Version           | Monotonically increasing `uint64` identifying each committed state.                   |
 | Root              | 32‑byte SHA‑256 digest committing to the entire tree at a given version.              |
 | Nibble            | 4‑bit value (0‑15); two packed per byte in path encodings.                            |

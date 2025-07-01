@@ -39,8 +39,8 @@ Version 2 nodes (append after v1):
 (2, "9F")    -> leaf_K2_new
 ```
 
-## Benefits for Blockchain
-- High-frequency state updates (thousands per block)
+## Benefits for Distributed Systems
+- High-frequency state updates (thousands per batch)
 - Sustained write throughput with minimal I/O
 - Target: <10 MB/s sustained write on commodity SSDs
 - Enables high transaction throughput

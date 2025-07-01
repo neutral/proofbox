@@ -42,7 +42,7 @@ See [SN-008] for the original specification.
    - `NodeKey(version=43, nibble_path="AB7")`
 
 ## Global Uniqueness
-At any version, a nibble path itself can uniquely identify a node. Combining version and nibble path pinpoints any node across versions from the whole blockchain history (see [SN-009]).
+At any version, a nibble path itself can uniquely identify a node. Combining version and nibble path pinpoints any node across versions from the whole system history (see [SN-009]).
 
 Key properties:
 - No two different nodes share the same NodeKey

@@ -6,10 +6,10 @@ This document compares ProofBox (Jellyfish Merkle Tree) with other key-value sto
 
 | System | Type | Versioning | Proofs | Best For |
 |--------|------|------------|---------|----------|
-| **ProofBox (JMT)** | Versioned KV + Merkle | ✅ Native | ✅ Efficient | Blockchain state |
+| **ProofBox (JMT)** | Versioned KV + Merkle | ✅ Native | ✅ Efficient | Verifiable state |
 | **Redis** | In-memory KV | ❌ | ❌ | Caching, sessions |
 | **RocksDB** | Embedded KV | ❌ | ❌ | Local storage |
-| **Ethereum MPT** | Merkle Patricia Trie | ✅ Via snapshots | ✅ Complex | Ethereum state |
+| **Ethereum MPT** | Merkle Patricia Trie | ✅ Via snapshots | ✅ Complex | Distributed state |
 | **Git** | Content-addressed | ✅ Native | ⚠️ Different model | Source control |
 | **IPFS** | Content-addressed | ⚠️ Via CIDs | ⚠️ Different model | Distributed storage |
 
@@ -39,7 +39,7 @@ This document compares ProofBox (Jellyfish Merkle Tree) with other key-value sto
 **When to use ProofBox over Redis**:
 - Need cryptographic proofs
 - Require version history
-- Blockchain or audit applications
+- Distributed systems or audit applications
 - Data integrity is critical
 
 ### RocksDB / LevelDB
@@ -67,7 +67,7 @@ This document compares ProofBox (Jellyfish Merkle Tree) with other key-value sto
 - Need Merkle proofs
 - Require cryptographic verification
 - Want built-in versioning
-- Building blockchain/audit systems
+- Building verifiable storage systems
 
 ## Merkle Tree Implementations
 
@@ -101,13 +101,13 @@ This document compares ProofBox (Jellyfish Merkle Tree) with other key-value sto
    - JMT: Cleaner implementation, fewer bugs
 
 **When to use Ethereum MPT**:
-- Building Ethereum-compatible systems
+- Building systems compatible with Ethereum's approach
 - Need optimal proof size for sequential keys
-- Require Ethereum ecosystem compatibility
+- Require compatibility with existing MPT implementations
 
 **When to use ProofBox JMT**:
 - Want simpler implementation
-- Building new blockchain systems
+- Building new verifiable systems
 - Prefer consistent, predictable behavior
 - Value maintainability over micro-optimizations
 
@@ -125,7 +125,7 @@ This document compares ProofBox (Jellyfish Merkle Tree) with other key-value sto
 | **Updates** | Rebuild entire tree | Incremental updates |
 | **Storage** | Not persistent | Persistent versions |
 
-Bitcoin's Merkle tree serves a different purpose - it's for proving transaction inclusion in blocks, not for state storage.
+Bitcoin's Merkle tree serves a different purpose - it's for proving transaction inclusion in sets, not for key-value state storage.
 
 ## Version Control Systems
 
@@ -157,7 +157,7 @@ Bitcoin's Merkle tree serves a different purpose - it's for proving transaction 
 **When to use ProofBox**:
 - Application state versioning
 - Database audit trails
-- Blockchain state storage
+- Verifiable state storage
 - Need cryptographic proofs per key
 
 ## Distributed Storage Systems
@@ -188,7 +188,7 @@ Bitcoin's Merkle tree serves a different purpose - it's for proving transaction 
 - Require version history
 - Need inclusion/exclusion proofs
 
-## Blockchain State Stores
+## Distributed State Stores
 
 ### Tendermint IAVL
 
@@ -213,7 +213,7 @@ Bitcoin's Merkle tree serves a different purpose - it's for proving transaction 
 - Sparse key distribution
 - Want smaller proofs
 - Prefer simpler implementation
-- Building custom blockchain
+- Building custom verifiable systems
 
 ## Summary: When to Use ProofBox
 
@@ -223,7 +223,7 @@ Bitcoin's Merkle tree serves a different purpose - it's for proving transaction 
 - Cryptographic proofs of key-value data
 - Version history with efficient queries
 - Audit trail with tamper detection
-- Integration with blockchain systems
+- Integration with distributed systems
 
 ### ProofBox is NOT ideal when you need:
 
@@ -244,10 +244,10 @@ Bitcoin's Merkle tree serves a different purpose - it's for proving transaction 
 
 ### Best Use Cases
 
-1. **Blockchain State Storage**
-   - Validator nodes
+1. **Verifiable State Storage**
+   - Distributed nodes
    - State synchronization
-   - Light client proofs
+   - Remote verification proofs
 
 2. **Audit Systems**
    - Regulatory compliance

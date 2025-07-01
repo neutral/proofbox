@@ -4,7 +4,7 @@ Welcome to ProofBox! This tutorial will introduce you to the core concepts and h
 
 ## What is ProofBox?
 
-ProofBox is a high-performance, versioned key-value store that provides cryptographic proofs of data integrity. It's built on the Jellyfish Merkle Tree (JMT) data structure, originally developed for blockchain systems but useful for any application requiring:
+ProofBox is a high-performance, versioned key-value store that provides cryptographic proofs of data integrity. It's built on the Jellyfish Merkle Tree (JMT) data structure, designed for applications requiring:
 
 - **Versioned data storage** - Keep history of all changes
 - **Cryptographic proofs** - Prove data exists (or doesn't) without revealing entire database
@@ -17,7 +17,7 @@ ProofBox is ideal for:
 
 - **Audit systems** - Maintain tamper-proof logs with verification
 - **Configuration management** - Track all configuration changes with proofs
-- **Blockchain applications** - State storage with Merkle proofs
+- **Distributed systems** - Verifiable state storage with Merkle proofs
 - **Compliance systems** - Prove data state at any point in time
 - **Version control** - For structured data with cryptographic guarantees
 

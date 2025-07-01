@@ -50,7 +50,7 @@ This design choice prioritizes:
 ### Why This is Acceptable
 
 1. **JMT Specification**: Explicitly rejects extension nodes for simplicity
-2. **Random Keys**: In blockchain use cases, keys are hashes with uniform distribution
+2. **Random Keys**: In typical use cases, keys are hashes with uniform distribution
 3. **Rare in Practice**: Long common prefixes are statistically improbable with hash-based keys
 4. **Trade-off**: Simplicity and correctness outweigh the inefficiency in edge cases
 

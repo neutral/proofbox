@@ -17,7 +17,7 @@ ProofBox follows these guiding principles:
 ProofBox is implemented in Go rather than Rust, C++, or other systems languages.
 
 ### Rationale
-- **Ecosystem Fit**: Most blockchain infrastructure uses Go (Ethereum, Cosmos, etc.)
+- **Ecosystem Fit**: Strong ecosystem for distributed systems and infrastructure
 - **Developer Velocity**: Faster development cycle, easier onboarding
 - **Tooling**: Excellent built-in testing, benchmarking, and profiling
 - **Concurrency**: First-class concurrency primitives (goroutines, channels)
@@ -47,7 +47,7 @@ From ADR-001:
 - Slightly higher storage overhead
 
 ### Why This Works
-The 16-way branching already provides significant height reduction compared to binary trees. For randomly distributed keys (common in blockchain), the lack of extension nodes has minimal impact.
+The 16-way branching already provides significant height reduction compared to binary trees. For randomly distributed keys (common in cryptographic applications), the lack of extension nodes has minimal impact.
 
 ## Storage: Why PebbleDB?
 
@@ -59,7 +59,7 @@ Use PebbleDB as the primary storage backend instead of RocksDB, LevelDB, or cust
 - **Go Native**: No CGO, pure Go implementation
 - **LSM Optimized**: Designed specifically for LSM-tree workloads
 - **Better Compaction**: More efficient compaction algorithms
-- **Active Development**: Maintained by CockroachDB team
+- **Active Development**: Well-maintained by CockroachDB team
 
 ### Trade-offs
 - **Newer**: Less battle-tested than RocksDB
@@ -196,7 +196,7 @@ Enforce a 1MB maximum value size (`MaxValueSize = 1024 * 1024`).
 Optimize for write throughput over read latency.
 
 ### Rationale
-- **Blockchain Workload**: More writes during block processing
+- **System Workload**: More writes during state updates
 - **LSM Alignment**: Writes are naturally fast in LSM trees
 - **Batch Optimization**: Group writes for efficiency
 - **Version Accumulation**: Many versions created quickly

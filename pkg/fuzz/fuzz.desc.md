@@ -18,12 +18,12 @@ Generators → Operations → Tree → Invariant Checkers → Pass/Fail
 
 ### 1. Version Isolation - The Critical Invariant
 
-Version isolation ensures that keys are only visible in versions after they were added. This is critical for blockchain applications where historical state queries must be accurate.
+Version isolation ensures that keys are only visible in versions after they were added. This is critical for versioned databases where historical state queries must be accurate.
 
 **Why it matters:**
 - In a versioned Merkle tree, querying version 3 should only show data that existed at version 3
 - Without proper isolation, keys added in version 5 might incorrectly appear in version 3 queries
-- This bug can compromise blockchain integrity and consensus
+- This bug can compromise data integrity and consistency
 
 **How it works:**
 1. **Tracks First Appearance**: Records when each key is first added to the tree
@@ -135,4 +135,4 @@ The fuzzing infrastructure successfully:
 4. **Reproducible**: Failed tests can be debugged with saved inputs
 5. **Extensible**: New properties easily added as invariant checkers
 
-The combination of property-based testing (logical bugs) and coverage-guided fuzzing (edge cases) ensures the Jellyfish Merkle Tree implementation is robust and correct for production blockchain use.
+The combination of property-based testing (logical bugs) and coverage-guided fuzzing (edge cases) ensures the Jellyfish Merkle Tree implementation is robust and correct for production use.

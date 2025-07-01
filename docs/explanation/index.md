@@ -60,7 +60,7 @@ Understand:
 Compare with:
 - Traditional key-value stores (Redis, RocksDB)
 - Other Merkle tree implementations
-- Blockchain state stores
+- Distributed state stores
 - Version control systems
 
 ## How to Read This Section

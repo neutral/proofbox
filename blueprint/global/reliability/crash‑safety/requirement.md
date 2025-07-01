@@ -17,4 +17,4 @@ CI step: start Commit, `kill -9`, restart, run `jmtcli root`; expect previous ro
 
 ## Rationale
 
-Blockchain nodes cannot afford state forks caused by storage corruption.
+Distributed systems cannot afford state forks caused by storage corruption.

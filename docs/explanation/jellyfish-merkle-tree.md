@@ -221,4 +221,4 @@ The Jellyfish Merkle Tree provides an elegant solution for versioned, verifiable
 - **Optimized**: Designed for modern storage engines
 - **Simple**: Only two node types to understand
 
-These properties make JMT ideal for blockchain state storage, audit logs, configuration management, and any system requiring cryptographic integrity with version history.
+These properties make JMT ideal for verifiable databases, audit logs, configuration management, and any system requiring cryptographic integrity with version history.

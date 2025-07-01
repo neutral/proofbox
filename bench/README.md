@@ -64,7 +64,7 @@ go test -bench=. ./bench/... | tee bench/results/$(date +%Y%m%d_%H%M%S).txt
 ### System Benchmarks (`system_bench_test.go`)
 End-to-end benchmarks that simulate real-world usage:
 - `BenchmarkRealWorldInsert`: Realistic key distribution and values
-- `BenchmarkBlockProcessing`: Simulates blockchain state updates
+- `BenchmarkBlockProcessing`: Simulates batch state updates
 - `BenchmarkLightClientProofPath`: Full proof generation and verification flow
 - `BenchmarkConcurrentReads`: Multi-reader performance
 

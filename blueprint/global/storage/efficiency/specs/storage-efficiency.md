@@ -42,15 +42,15 @@ When updating m out of n leaves (see [SN-010]):
 - Proof size: ~8-10 hashes (vs 30+ for binary)
 
 ### Storage Growth Pattern
-For blockchain with:
-- 1000 transactions per block
-- 10 accounts modified per transaction
-- Result: ~10,000 new nodes per block
-- At 1KB per node: ~10MB per block
+For distributed systems with:
+- 1000 transactions per batch
+- 10 entities modified per transaction
+- Result: ~10,000 new nodes per batch
+- At 1KB per node: ~10MB per batch
 - Sustainable on commodity SSDs
 
 ## Design Trade-offs
 - Larger branching factor (16) means larger internal nodes
 - But fewer internal nodes overall
 - Net positive due to reduced tree height
-- Optimal for read-heavy blockchain workloads
+- Optimal for read-heavy distributed workloads

@@ -1,7 +1,7 @@
 # Proof Performance Specification
 
 ## Overview
-JMT's design optimizes for fast proof generation and verification, critical for blockchain light clients and validators.
+JMT's design optimizes for fast proof generation and verification, critical for distributed system clients and validators.
 
 ## Proof Size Optimization
 The number of sibling digests in a JMT proof is less on average than equivalent trees without optimization (see [SN-007]):

@@ -9,7 +9,7 @@ tags: [api, storage]
 
 ## 1 Purpose & Value
 
-As a **blockchain state executor** I want to call `Put(key,value)` repeatedly and then `Commit(version)` so that all modified accounts persist atomically and I get the new root hash.
+As a **state manager** I want to call `Put(key,value)` repeatedly and then `Commit(version)` so that all modified entities persist atomically and I get the new root hash.
 
 ## 2 Scope
 

@@ -151,7 +151,7 @@ func BenchmarkLookupLatency(b *testing.B) {
 	}
 }
 
-// BenchmarkBlockProcessing simulates blockchain block processing
+// BenchmarkBlockProcessing simulates batch transaction processing
 func BenchmarkBlockProcessing(b *testing.B) {
 	blockSizes := []int{100, 500, 1000, 5000, 10000}
 	

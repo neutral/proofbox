@@ -61,7 +61,7 @@ Long-term storage requires pruning strategy:
 
 ## Example Usage
 ```rust
-// Version represents blockchain height
+// Version represents system state checkpoint
 let version_100 = tree.commit_version(100, changes);
 let version_101 = tree.commit_version(101, more_changes);
 

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Jellyfish Merkle Tree (JMT) is an **authenticated, sparse Merkle tree** optimized for storing blockchain state in key-value databases. It was originally developed for Facebook's Diem (Libra) blockchain to balance **space efficiency, computational overhead, and I/O performance**.
+The Jellyfish Merkle Tree (JMT) is an **authenticated, sparse Merkle tree** optimized for storing versioned state in key-value databases. It was originally developed for Facebook's Diem (Libra) distributed system to balance **space efficiency, computational overhead, and I/O performance**.
 
 The JMT draws inspiration from Ethereum's Patricia Merkle Tree (PMT) but introduces _key innovations_ in **node design, key schema, and proof structure** to better suit a **log-structured merge (LSM) storage engine** (e.g. RocksDB).
 
@@ -30,7 +30,7 @@ By using only two node types (internal and leaf) and eliminating certain complex
 
 ### Authenticated Key-Value Store (AKVS)
 
-The JMT acts as an authenticated data structure that binds a set of key-value pairs to a single root hash (state commitment). A Merkle tree allows any client to verify that a given key maps to a given value (or is absent) in the committed state by supplying a _Merkle proof_. This fits the blockchain need for cryptographic state verification.
+The JMT acts as an authenticated data structure that binds a set of key-value pairs to a single root hash (state commitment). A Merkle tree allows any client to verify that a given key maps to a given value (or is absent) in the committed state by supplying a _Merkle proof_. This fits the distributed system need for cryptographic state verification.
 
 ### Addressable Merkle Tree (AMT)
 
@@ -97,7 +97,7 @@ The detailed specifications have been organized alongside their corresponding fe
 
 ## Scope & Assumptions
 
-The complete specification focuses on the core data structure and algorithms of the Jellyfish Merkle Tree as used for an authenticated key-value store in blockchain state management. Key assumptions include:
+The complete specification focuses on the core data structure and algorithms of the Jellyfish Merkle Tree as used for an authenticated key-value store in distributed state management. Key assumptions include:
 
 - **Key-Value Domain**: Fixed-length binary keys (typically 256-bit hashes)
 - **Cryptographic Hashing**: Secure hash function (e.g. SHA-3 or Blake2)
