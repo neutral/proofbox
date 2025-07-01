@@ -1,8 +1,6 @@
 ---
-id: step.22.cli-implementation
+id: step.21.cli-implementation
 depends_on:
-  - step.16.storage-layer
-  - step.13.proof-system
 tags: [cli, interface, step]
 ---
 
@@ -21,13 +19,14 @@ Implement the `jmtcli` command-line interface tool with subcommands for tree ope
 ### CLI Structure
 
 Create `cmd/jmtcli/main.go`:
+
 ```go
 package main
 
 import (
     "fmt"
     "os"
-    
+
     "github.com/spf13/cobra"
     "github.com/acme/jmt/internal/cli"
 )
@@ -43,7 +42,7 @@ func main() {
         Use:   "jmtcli",
         Short: "Jellyfish Merkle Tree CLI",
         Long: `A command-line interface for interacting with Jellyfish Merkle Trees.
-        
+
 This tool provides commands for:
 - Creating and managing JMT databases
 - Inserting, updating, and deleting key-value pairs
@@ -51,18 +50,18 @@ This tool provides commands for:
 - Inspecting tree structure and statistics`,
         Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date),
     }
-    
+
     // Global flags
     var (
         dbPath   string
         verbose  bool
         format   string
     )
-    
+
     rootCmd.PersistentFlags().StringVarP(&dbPath, "database", "d", "./jmt.db", "Path to JMT database")
     rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
     rootCmd.PersistentFlags().StringVarP(&format, "format", "f", "text", "Output format (text, json, hex)")
-    
+
     // Add subcommands
     rootCmd.AddCommand(
         cli.NewInitCommand(),
@@ -78,7 +77,7 @@ This tool provides commands for:
         cli.NewImportCommand(),
         cli.NewReplCommand(),
     )
-    
+
     if err := rootCmd.Execute(); err != nil {
         fmt.Fprintf(os.Stderr, "Error: %v\n", err)
         os.Exit(1)
@@ -89,6 +88,7 @@ This tool provides commands for:
 ### Core Commands Implementation
 
 Create `internal/cli/commands.go`:
+
 ```go
 package cli
 
@@ -98,7 +98,7 @@ import (
     "fmt"
     "io"
     "os"
-    
+
     "github.com/spf13/cobra"
     "github.com/acme/jmt/pkg/tree"
     "github.com/acme/jmt/pkg/types"
@@ -120,25 +120,25 @@ func NewInitCommand() *cobra.Command {
         Short: "Initialize a new JMT database",
         RunE: func(cmd *cobra.Command, args []string) error {
             dbPath, _ := cmd.Flags().GetString("database")
-            
+
             // Check if database already exists
             if _, err := os.Stat(dbPath); err == nil {
                 return fmt.Errorf("database already exists at %s", dbPath)
             }
-            
+
             // Create new database
             db, err := pebble.Open(dbPath, nil)
             if err != nil {
                 return fmt.Errorf("failed to create database: %w", err)
             }
             defer db.Close()
-            
+
             // Initialize empty tree
             tree := tree.New(db)
             if err := tree.Initialize(); err != nil {
                 return fmt.Errorf("failed to initialize tree: %w", err)
             }
-            
+
             fmt.Printf("Initialized empty JMT database at %s\n", dbPath)
             return nil
         },
@@ -153,7 +153,7 @@ func NewPutCommand() *cobra.Command {
         keyFile  string
         valueFile string
     )
-    
+
     cmd := &cobra.Command{
         Use:   "put",
         Short: "Insert or update a key-value pair",
@@ -165,41 +165,41 @@ func NewPutCommand() *cobra.Command {
                 return err
             }
             defer ctx.Close()
-            
+
             // Parse key
             key, err := parseKey(keyStr, keyFile)
             if err != nil {
                 return fmt.Errorf("invalid key: %w", err)
             }
-            
+
             // Parse value
             value, err := parseValue(valueStr, valueFile)
             if err != nil {
                 return fmt.Errorf("invalid value: %w", err)
             }
-            
+
             // Perform put operation
             version, err := ctx.Tree.Put(key, value)
             if err != nil {
                 return fmt.Errorf("put failed: %w", err)
             }
-            
+
             // Output result
             result := map[string]interface{}{
                 "version": version,
                 "key":     formatKey(key, ctx.Format),
                 "size":    len(value),
             }
-            
+
             return ctx.Output(result)
         },
     }
-    
+
     cmd.Flags().StringVar(&keyStr, "key", "", "Key string (will be hashed)")
     cmd.Flags().StringVar(&valueStr, "value", "", "Value string")
     cmd.Flags().StringVar(&keyFile, "key-file", "", "Read key from file")
     cmd.Flags().StringVar(&valueFile, "value-file", "", "Read value from file")
-    
+
     return cmd
 }
 
@@ -210,7 +210,7 @@ func NewGetCommand() *cobra.Command {
         keyFile string
         version uint64
     )
-    
+
     cmd := &cobra.Command{
         Use:   "get",
         Short: "Retrieve a value by key",
@@ -220,13 +220,13 @@ func NewGetCommand() *cobra.Command {
                 return err
             }
             defer ctx.Close()
-            
+
             // Parse key
             key, err := parseKey(keyStr, keyFile)
             if err != nil {
                 return fmt.Errorf("invalid key: %w", err)
             }
-            
+
             // Use specified version or latest
             var value []byte
             if version > 0 {
@@ -234,33 +234,33 @@ func NewGetCommand() *cobra.Command {
             } else {
                 value, err = ctx.Tree.Get(key)
             }
-            
+
             if err != nil {
                 if errors.Is(err, types.ErrKeyNotFound) {
                     return fmt.Errorf("key not found")
                 }
                 return fmt.Errorf("get failed: %w", err)
             }
-            
+
             // Output result
             result := map[string]interface{}{
                 "key":   formatKey(key, ctx.Format),
                 "value": formatValue(value, ctx.Format),
                 "size":  len(value),
             }
-            
+
             if version > 0 {
                 result["version"] = version
             }
-            
+
             return ctx.Output(result)
         },
     }
-    
+
     cmd.Flags().StringVar(&keyStr, "key", "", "Key string")
     cmd.Flags().StringVar(&keyFile, "key-file", "", "Read key from file")
     cmd.Flags().Uint64Var(&version, "version", 0, "Specific version to query")
-    
+
     return cmd
 }
 
@@ -271,7 +271,7 @@ func NewProveCommand() *cobra.Command {
         keyFile string
         output  string
     )
-    
+
     cmd := &cobra.Command{
         Use:   "prove",
         Short: "Generate a Merkle proof for a key",
@@ -281,25 +281,25 @@ func NewProveCommand() *cobra.Command {
                 return err
             }
             defer ctx.Close()
-            
+
             // Parse key
             key, err := parseKey(keyStr, keyFile)
             if err != nil {
                 return fmt.Errorf("invalid key: %w", err)
             }
-            
+
             // Generate proof
             proof, err := ctx.Tree.GenerateProof(key)
             if err != nil {
                 return fmt.Errorf("proof generation failed: %w", err)
             }
-            
+
             // Serialize proof
             proofData, err := json.Marshal(proof)
             if err != nil {
                 return fmt.Errorf("failed to serialize proof: %w", err)
             }
-            
+
             // Output to file or stdout
             if output != "" {
                 if err := os.WriteFile(output, proofData, 0644); err != nil {
@@ -309,22 +309,22 @@ func NewProveCommand() *cobra.Command {
             } else {
                 fmt.Println(string(proofData))
             }
-            
+
             return nil
         },
     }
-    
+
     cmd.Flags().StringVar(&keyStr, "key", "", "Key string")
     cmd.Flags().StringVar(&keyFile, "key-file", "", "Read key from file")
     cmd.Flags().StringVarP(&output, "output", "o", "", "Output proof to file")
-    
+
     return cmd
 }
 
 // NewVerifyCommand creates the verify subcommand
 func NewVerifyCommand() *cobra.Command {
     var proofFile string
-    
+
     cmd := &cobra.Command{
         Use:   "verify",
         Short: "Verify a Merkle proof",
@@ -333,7 +333,7 @@ func NewVerifyCommand() *cobra.Command {
             // Read proof from file or stdin
             var proofData []byte
             var err error
-            
+
             if proofFile != "" {
                 proofData, err = os.ReadFile(proofFile)
             } else if len(args) > 0 {
@@ -341,31 +341,31 @@ func NewVerifyCommand() *cobra.Command {
             } else {
                 proofData, err = io.ReadAll(os.Stdin)
             }
-            
+
             if err != nil {
                 return fmt.Errorf("failed to read proof: %w", err)
             }
-            
+
             // Parse proof
             var proof types.Proof
             if err := json.Unmarshal(proofData, &proof); err != nil {
                 return fmt.Errorf("invalid proof format: %w", err)
             }
-            
+
             // Verify proof
             verifier := proof.NewVerifier()
             if err := verifier.Verify(&proof); err != nil {
                 fmt.Println("❌ Proof verification FAILED:", err)
                 return err
             }
-            
+
             fmt.Println("✅ Proof verification PASSED")
             return nil
         },
     }
-    
+
     cmd.Flags().StringVarP(&proofFile, "file", "f", "", "Read proof from file")
-    
+
     return cmd
 }
 
@@ -375,12 +375,12 @@ func NewBatchCommand() *cobra.Command {
         scriptFile string
         format     string
     )
-    
+
     cmd := &cobra.Command{
         Use:   "batch",
         Short: "Execute batch operations from file",
-        Long: `Execute multiple operations from a file. 
-        
+        Long: `Execute multiple operations from a file.
+
 File format (JSON):
 [
   {"op": "put", "key": "key1", "value": "value1"},
@@ -393,24 +393,24 @@ File format (JSON):
                 return err
             }
             defer ctx.Close()
-            
+
             // Read batch file
             data, err := os.ReadFile(scriptFile)
             if err != nil {
                 return fmt.Errorf("failed to read batch file: %w", err)
             }
-            
+
             // Parse operations
             var ops []BatchOperation
             if err := json.Unmarshal(data, &ops); err != nil {
                 return fmt.Errorf("invalid batch format: %w", err)
             }
-            
+
             // Execute batch
             batch := ctx.Tree.NewBatch()
             for i, op := range ops {
                 key := types.KeyHash([]byte(op.Key))
-                
+
                 switch op.Op {
                 case "put":
                     if err := batch.Put(key, []byte(op.Value)); err != nil {
@@ -424,21 +424,21 @@ File format (JSON):
                     return fmt.Errorf("unknown operation: %s", op.Op)
                 }
             }
-            
+
             // Commit batch
             version, err := batch.Commit()
             if err != nil {
                 return fmt.Errorf("batch commit failed: %w", err)
             }
-            
+
             fmt.Printf("Batch committed successfully at version %d (%d operations)\n", version, len(ops))
             return nil
         },
     }
-    
+
     cmd.Flags().StringVarP(&scriptFile, "file", "f", "", "Batch operations file")
     cmd.MarkFlagRequired("file")
-    
+
     return cmd
 }
 
@@ -453,7 +453,7 @@ func NewReplCommand() *cobra.Command {
                 return err
             }
             defer ctx.Close()
-            
+
             repl := NewRepl(ctx)
             return repl.Run()
         },
@@ -464,6 +464,7 @@ func NewReplCommand() *cobra.Command {
 ### REPL Implementation
 
 Create `internal/cli/repl.go`:
+
 ```go
 package cli
 
@@ -472,7 +473,7 @@ import (
     "fmt"
     "os"
     "strings"
-    
+
     "github.com/c-bata/go-prompt"
 )
 
@@ -497,7 +498,7 @@ func (r *Repl) Run() error {
     fmt.Println("JMT Interactive Shell")
     fmt.Println("Type 'help' for commands, 'exit' to quit")
     fmt.Println()
-    
+
     p := prompt.New(
         r.executor,
         r.completer,
@@ -505,7 +506,7 @@ func (r *Repl) Run() error {
         prompt.OptionHistory(r.history),
         prompt.OptionTitle("JMT REPL"),
     )
-    
+
     p.Run()
     return nil
 }
@@ -516,17 +517,17 @@ func (r *Repl) executor(line string) {
     if line == "" {
         return
     }
-    
+
     r.history = append(r.history, line)
     parts := strings.Fields(line)
-    
+
     if len(parts) == 0 {
         return
     }
-    
+
     cmd := parts[0]
     args := parts[1:]
-    
+
     switch cmd {
     case "help":
         r.showHelp()
@@ -580,10 +581,10 @@ func (r *Repl) cmdPut(args []string) {
         fmt.Println("Usage: put <key> <value>")
         return
     }
-    
+
     key := types.KeyHash([]byte(args[0]))
     value := []byte(strings.Join(args[1:], " "))
-    
+
     if r.txActive {
         if err := r.batch.Put(key, value); err != nil {
             fmt.Printf("Error: %v\n", err)
@@ -605,14 +606,14 @@ func (r *Repl) cmdGet(args []string) {
         fmt.Println("Usage: get <key>")
         return
     }
-    
+
     key := types.KeyHash([]byte(args[0]))
     value, err := r.ctx.Tree.Get(key)
     if err != nil {
         fmt.Printf("Error: %v\n", err)
         return
     }
-    
+
     fmt.Printf("Value: %s\n", string(value))
 }
 
@@ -621,7 +622,7 @@ func (r *Repl) cmdBeginTx(args []string) {
         fmt.Println("Transaction already active")
         return
     }
-    
+
     r.batch = r.ctx.Tree.NewBatch()
     r.txActive = true
     fmt.Println("Transaction started")
@@ -632,13 +633,13 @@ func (r *Repl) cmdCommitTx(args []string) {
         fmt.Println("No active transaction")
         return
     }
-    
+
     version, err := r.batch.Commit()
     if err != nil {
         fmt.Printf("Commit failed: %v\n", err)
         return
     }
-    
+
     r.txActive = false
     r.batch = nil
     fmt.Printf("Transaction committed at version %d\n", version)
@@ -648,23 +649,24 @@ func (r *Repl) cmdCommitTx(args []string) {
 ## Testing Requirements
 
 ### CLI Integration Tests
+
 ```go
 func TestCLICommands(t *testing.T) {
     // Create temporary database
     tmpDir := t.TempDir()
     dbPath := filepath.Join(tmpDir, "test.db")
-    
+
     // Test init command
     cmd := exec.Command("jmtcli", "init", "-d", dbPath)
     output, err := cmd.CombinedOutput()
     assert.NoError(t, err)
     assert.Contains(t, string(output), "Initialized")
-    
+
     // Test put command
     cmd = exec.Command("jmtcli", "put", "-d", dbPath, "--key=test", "--value=hello")
     output, err = cmd.CombinedOutput()
     assert.NoError(t, err)
-    
+
     // Test get command
     cmd = exec.Command("jmtcli", "get", "-d", dbPath, "--key=test")
     output, err = cmd.CombinedOutput()
@@ -679,11 +681,11 @@ func TestBatchOperations(t *testing.T) {
         {Op: "put", Key: "key2", Value: "value2"},
         {Op: "delete", Key: "key1"},
     }
-    
+
     batchFile := filepath.Join(t.TempDir(), "batch.json")
     data, _ := json.Marshal(batch)
     os.WriteFile(batchFile, data, 0644)
-    
+
     // Execute batch
     cmd := exec.Command("jmtcli", "batch", "-f", batchFile)
     output, err := cmd.CombinedOutput()

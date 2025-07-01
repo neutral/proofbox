@@ -1,8 +1,6 @@
 ---
-id: step.21.documentation-and-release
+id: step.20.documentation-and-release
 depends_on:
-  - step.20.ci
-  - step.22.cli-implementation
 tags: [docs, release, step]
 ---
 
@@ -22,6 +20,7 @@ Establish comprehensive documentation, licensing, changelog management, and rele
 ### Documentation Structure
 
 Create documentation architecture:
+
 ```
 docs/
 ├── README.md              # Main project documentation
@@ -46,6 +45,7 @@ docs/
 ### Main README
 
 Create `README.md`:
+
 ```markdown
 # Jellyfish Merkle Tree
 
@@ -86,40 +86,42 @@ go install github.com/acme/jmt/cmd/jmtcli@latest
 package main
 
 import (
-    "log"
-    
+"log"
+
     "github.com/acme/jmt/pkg/tree"
     "github.com/acme/jmt/pkg/types"
     "github.com/acme/jmt/pkg/storage/pebble"
+
 )
 
 func main() {
-    // Open database
-    db, err := pebble.Open("./data", nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer db.Close()
-    
+// Open database
+db, err := pebble.Open("./data", nil)
+if err != nil {
+log.Fatal(err)
+}
+defer db.Close()
+
     // Create tree
     jmt := tree.New(db)
-    
+
     // Insert key-value
     key := types.KeyHash([]byte("hello"))
     value := []byte("world")
-    
+
     version, err := jmt.Put(key, value)
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // Generate proof
     proof, err := jmt.GenerateProof(key)
     if err != nil {
         log.Fatal(err)
     }
-    
+
     log.Printf("Stored at version %d with proof type %v", version, proof.Type)
+
 }
 \`\`\`
 
@@ -133,6 +135,7 @@ func main() {
 ## Performance
 
 Benchmark results on typical hardware:
+
 - **Insertions**: 20,000+ ops/sec
 - **Lookups**: 100,000+ ops/sec
 - **Proof Generation**: < 300μs
@@ -152,6 +155,7 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ### API Documentation
 
 Create `docs/api/index.md`:
+
 ```markdown
 # API Reference
 
@@ -179,8 +183,8 @@ jmt := tree.New(db)
 
 // With custom options
 jmt := tree.NewWithOptions(db, &tree.Options{
-    CacheSize: 1000,
-    Hasher:    crypto.DefaultHasher,
+CacheSize: 1000,
+Hasher: crypto.DefaultHasher,
 })
 \`\`\`
 
@@ -210,6 +214,7 @@ version, err := batch.Commit()
 ### License File
 
 Create `LICENSE`:
+
 ```
 MIT License
 
@@ -237,6 +242,7 @@ SOFTWARE.
 ### Changelog Management
 
 Create `CHANGELOG.md`:
+
 ```markdown
 # Changelog
 
@@ -248,6 +254,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial implementation of Jellyfish Merkle Tree
 - PebbleDB storage backend
 - Proof generation and verification
@@ -256,36 +263,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance benchmarks
 
 ### Changed
+
 - N/A
 
 ### Deprecated
+
 - N/A
 
 ### Removed
+
 - N/A
 
 ### Fixed
+
 - N/A
 
 ### Security
+
 - N/A
 
 ## [0.1.0] - 2024-XX-XX
 
 ### Added
+
 - First release
 ```
 
 ### Release Automation
 
 Create `.github/workflows/release.yml`:
+
 ```yaml
 name: Release
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -298,15 +312,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
-      
+          go-version: "1.21"
+
       - name: Run tests
         run: make test
-      
+
       - name: Generate changelog
         id: changelog
         uses: mikepenz/release-changelog-builder-action@v3
@@ -314,11 +328,11 @@ jobs:
           configuration: ".github/changelog-config.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build binaries
         run: |
           make release-build
-      
+
       - name: Create Release
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -331,6 +345,7 @@ jobs:
 ### GoReleaser Configuration
 
 Create `.goreleaser.yml`:
+
 ```yaml
 project_name: jmt
 
@@ -371,7 +386,7 @@ archives:
         format: zip
 
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
@@ -380,9 +395,9 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
 
 dockers:
   - image_templates:
@@ -407,6 +422,7 @@ release:
 ### Contributing Guidelines
 
 Create `CONTRIBUTING.md`:
+
 ```markdown
 # Contributing to Jellyfish Merkle Tree
 
@@ -470,6 +486,7 @@ Create `CONTRIBUTING.md`:
 ### Documentation Generation
 
 Create `scripts/generate-docs.sh`:
+
 ```bash
 #!/bin/bash
 
@@ -502,11 +519,12 @@ echo "Documentation generation complete!"
 ## Testing Requirements
 
 ### Documentation Tests
+
 ```go
 func TestExamplesCompile(t *testing.T) {
     examples, err := filepath.Glob("docs/examples/**/*.go")
     assert.NoError(t, err)
-    
+
     for _, example := range examples {
         t.Run(example, func(t *testing.T) {
             cmd := exec.Command("go", "build", "-o", "/dev/null", example)
@@ -519,22 +537,22 @@ func TestExamplesCompile(t *testing.T) {
 func TestReadmeExamples(t *testing.T) {
     readme, err := os.ReadFile("README.md")
     assert.NoError(t, err)
-    
+
     // Extract code blocks
     codeBlocks := extractCodeBlocks(string(readme), "go")
-    
+
     for i, code := range codeBlocks {
         t.Run(fmt.Sprintf("Block%d", i), func(t *testing.T) {
             // Create temp file
             tmpfile, err := os.CreateTemp("", "example-*.go")
             assert.NoError(t, err)
             defer os.Remove(tmpfile.Name())
-            
+
             // Write package main wrapper
             fullCode := "package main\n\n" + code
             err = os.WriteFile(tmpfile.Name(), []byte(fullCode), 0644)
             assert.NoError(t, err)
-            
+
             // Try to compile
             cmd := exec.Command("go", "build", "-o", "/dev/null", tmpfile.Name())
             output, err := cmd.CombinedOutput()
@@ -545,6 +563,7 @@ func TestReadmeExamples(t *testing.T) {
 ```
 
 ### Release Tests
+
 ```bash
 #!/bin/bash
 # test-release.sh
