@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	parallel bool
-	dryRun   bool
+	dryRun bool
 )
 
 // BatchOperation represents a single operation in a batch
@@ -53,9 +52,10 @@ type OperationResult struct {
 // batchCmd represents the batch command
 var batchCmd = &cobra.Command{
 	Use:   "batch <operations.json>",
-	Short: "Execute batch operations from a JSON file",
-	Long: `Execute multiple operations from a JSON file.
-The file should contain an array of operations, each specifying
+	Short: "Execute batch operations atomically from a JSON file",
+	Long: `Execute multiple operations atomically from a JSON file.
+All operations are executed in a single transaction - either all succeed
+or all fail. The file should contain an array of operations, each specifying
 a type (put or delete), key, and value (for put operations).
 
 Example JSON format:
@@ -72,7 +72,6 @@ Example JSON format:
 
 func init() {
 	rootCmd.AddCommand(batchCmd)
-	batchCmd.Flags().BoolVar(&parallel, "parallel", false, "execute operations in parallel (experimental)")
 	batchCmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate operations without executing")
 }
 
@@ -146,7 +145,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Execute batch
+	// Execute batch atomically
 	startTime := time.Now()
 	startVersion := tree.GetLatestVersion()
 	
@@ -160,46 +159,69 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		result.OperationResults = make([]OperationResult, 0, len(batch.Operations))
 	}
 
-	// Execute operations
+	// Create batch transaction for atomic execution
+	batchTx := tree.NewBatchTransaction()
+
+	// Add all operations to the batch
 	for i, op := range batch.Operations {
-		opResult := OperationResult{
-			Index: i,
-			Type:  op.Type,
-			Key:   op.Key,
-		}
-
-		var version types.Version
+		key := types.KeyHash([]byte(op.Key))
+		
 		var err error
-
 		switch op.Type {
 		case "put":
-			key := types.KeyHash([]byte(op.Key))
-			value := []byte(op.Value)
-			version, err = tree.Put(key, value)
-			
+			err = batchTx.BatchPut(key, []byte(op.Value))
 		case "delete":
-			key := types.KeyHash([]byte(op.Key))
-			version, err = tree.Delete(key)
+			err = batchTx.BatchDelete(key)
 		}
 
 		if err != nil {
-			opResult.Success = false
-			opResult.Error = err.Error()
-			result.FailedOps++
-			result.Errors = append(result.Errors, fmt.Sprintf("op %d: %v", i, err))
-		} else {
-			opResult.Success = true
-			opResult.Version = uint64(version)
-			result.SuccessfulOps++
+			// Validation error - fail early
+			result.FailedOps = len(batch.Operations)
+			result.Errors = append(result.Errors, fmt.Sprintf("op %d: validation failed: %v", i, err))
+			result.Duration = time.Since(startTime).String()
+			return outputResult(result)
 		}
+	}
 
+	// Execute the batch atomically
+	version, err := batchTx.Execute()
+	if err != nil {
+		// All operations failed
+		result.FailedOps = len(batch.Operations)
+		result.Errors = append(result.Errors, fmt.Sprintf("batch execution failed: %v", err))
+		
 		if verboseMode {
-			result.OperationResults = append(result.OperationResults, opResult)
+			// Mark all operations as failed
+			for i, op := range batch.Operations {
+				result.OperationResults = append(result.OperationResults, OperationResult{
+					Index:   i,
+					Type:    op.Type,
+					Key:     op.Key,
+					Success: false,
+					Error:   "batch execution failed",
+				})
+			}
+		}
+	} else {
+		// All operations succeeded
+		result.SuccessfulOps = len(batch.Operations)
+		result.EndVersion = version
+		
+		if verboseMode {
+			// Mark all operations as successful with the same version
+			for i, op := range batch.Operations {
+				result.OperationResults = append(result.OperationResults, OperationResult{
+					Index:   i,
+					Type:    op.Type,
+					Key:     op.Key,
+					Success: true,
+					Version: uint64(version),
+				})
+			}
 		}
 	}
 
 	// Set final results
-	result.EndVersion = tree.GetLatestVersion()
 	result.Duration = time.Since(startTime).String()
 
 	// Output results

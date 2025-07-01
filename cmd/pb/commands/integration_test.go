@@ -25,7 +25,7 @@ func TestCLIBasicOperations(t *testing.T) {
 	// Helper to run CLI commands
 	runCLI := func(args ...string) (string, error) {
 		cmd := exec.Command("./pb_test", args...)
-		output, err := cmd.CombinedOutput()
+		output, err := cmd.Output()
 		return string(output), err
 	}
 
@@ -157,7 +157,7 @@ func TestCLIErrorHandling(t *testing.T) {
 	// Helper to run CLI commands
 	runCLI := func(args ...string) (string, error) {
 		cmd := exec.Command("./pb_test", args...)
-		output, err := cmd.CombinedOutput()
+		output, err := cmd.Output()
 		return string(output), err
 	}
 
@@ -224,7 +224,7 @@ func TestCLIProofForNonExistentKey(t *testing.T) {
 	// Helper to run CLI commands
 	runCLI := func(args ...string) (string, error) {
 		cmd := exec.Command("./pb_test", args...)
-		output, err := cmd.CombinedOutput()
+		output, err := cmd.Output()
 		return string(output), err
 	}
 

@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -34,9 +33,10 @@ type ImportResult struct {
 // importCmd represents the import command
 var importCmd = &cobra.Command{
 	Use:   "import <file>",
-	Short: "Import tree data from a file",
-	Long: `Import key-value pairs from a JSON or CSV file.
-The file format should match the export format.`,
+	Short: "Import tree data atomically from a file",
+	Long: `Import key-value pairs atomically from a JSON or CSV file.
+All entries are imported in a single transaction - either all succeed
+or all fail. The file format should match the export format.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runImport,
 }
@@ -173,7 +173,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Import entries
+	// Import entries atomically using batch transaction
 	startTime := time.Now()
 	startVersion := tree.GetLatestVersion()
 	
@@ -183,34 +183,62 @@ func runImport(cmd *cobra.Command, args []string) error {
 		Errors:       make([]string, 0),
 	}
 
-	// Process entries
+	// Create batch transaction for atomic import
+	batch := tree.NewBatchTransaction()
+
+	// Add all entries to the batch
+	validEntries := 0
 	for i, entry := range entries {
-		if err := importEntry(tree, entry); err != nil {
+		key, value, err := parseImportEntry(entry)
+		if err != nil {
 			result.FailedImports++
-			errorMsg := fmt.Sprintf("entry %d: %v", i, err)
+			errorMsg := fmt.Sprintf("entry %d: validation failed: %v", i, err)
 			result.Errors = append(result.Errors, errorMsg)
 			
 			if !skipErrors {
 				return fmt.Errorf("import failed at entry %d: %w", i, err)
 			}
-			
-			if verboseMode {
-				// Sanitize key for logging
-				sanitizedKey := sanitizeKey(entry.Key, false)
-				fmt.Fprintf(os.Stderr, "Error importing entry %d (key: %s): %v\n", i, sanitizedKey, err)
-			}
-		} else {
-			result.SuccessfulImports++
+			continue
 		}
+
+		// Add to batch
+		if err := batch.BatchPut(key, value); err != nil {
+			result.FailedImports++
+			errorMsg := fmt.Sprintf("entry %d: failed to add to batch: %v", i, err)
+			result.Errors = append(result.Errors, errorMsg)
+			
+			if !skipErrors {
+				return fmt.Errorf("import failed at entry %d: %w", i, err)
+			}
+			continue
+		}
+		
+		validEntries++
 
 		// Progress reporting
 		if (i+1)%1000 == 0 && verboseMode {
-			fmt.Fprintf(os.Stderr, "Imported %d/%d entries...\n", i+1, len(entries))
+			fmt.Fprintf(os.Stderr, "Prepared %d/%d entries...\n", i+1, len(entries))
 		}
 	}
 
-	// Get final state
-	result.EndVersion = tree.GetLatestVersion()
+	// Execute the batch atomically
+	if batch.Size() > 0 {
+		version, err := batch.Execute()
+		if err != nil {
+			result.FailedImports = len(entries)
+			result.Errors = append(result.Errors, fmt.Sprintf("batch execution failed: %v", err))
+			return fmt.Errorf("import batch execution failed: %w", err)
+		}
+		result.SuccessfulImports = validEntries
+		result.EndVersion = version
+		
+		if verboseMode {
+			fmt.Fprintf(os.Stderr, "Successfully imported %d entries\n", batch.Size())
+		}
+	} else {
+		result.EndVersion = startVersion
+	}
+
 	result.Duration = time.Since(startTime).String()
 
 	// Output results
@@ -241,19 +269,24 @@ func validateImportEntry(entry ExportEntry) error {
 	return nil
 }
 
-func importEntry(tree *tree.Tree, entry ExportEntry) error {
+func parseImportEntry(entry ExportEntry) (types.Key, []byte, error) {
 	var key types.Key
 	var value []byte
+
+	// Validate key is not empty
+	if entry.Key == "" {
+		return key, nil, fmt.Errorf("empty key")
+	}
 
 	// Parse key
 	if len(entry.Key) == 64 {
 		// Assume hex-encoded key
 		keyBytes, err := hex.DecodeString(entry.Key)
 		if err != nil {
-			return fmt.Errorf("failed to decode hex key: %w", err)
+			return key, nil, fmt.Errorf("failed to decode hex key: %w", err)
 		}
 		if len(keyBytes) != 32 {
-			return fmt.Errorf("key must be 32 bytes")
+			return key, nil, fmt.Errorf("key must be 32 bytes")
 		}
 		copy(key[:], keyBytes)
 	} else {
@@ -266,17 +299,11 @@ func importEntry(tree *tree.Tree, entry ExportEntry) error {
 		var err error
 		value, err = hex.DecodeString(entry.ValueHex)
 		if err != nil {
-			return fmt.Errorf("failed to decode hex value: %w", err)
+			return key, nil, fmt.Errorf("failed to decode hex value: %w", err)
 		}
 	} else {
 		value = []byte(entry.Value)
 	}
 
-	// Import to tree
-	_, err := tree.Put(key, value)
-	if err != nil {
-		return fmt.Errorf("failed to put: %w", err)
-	}
-
-	return nil
+	return key, value, nil
 }

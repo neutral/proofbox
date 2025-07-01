@@ -178,7 +178,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 
 	// Prepare output writer
 	var writer io.Writer
-	if exportOutput == "" {
+	if exportOutput == "" || exportOutput == "-" {
 		writer = os.Stdout
 	} else {
 		// Validate output path
@@ -240,7 +240,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 	}
 
 	// Report completion
-	if !jsonOutput && exportOutput != "" {
+	if !jsonOutput && exportOutput != "" && exportOutput != "-" {
 		duration := time.Since(startTime)
 		fmt.Printf("Exported %d entries (of %d requested) to %s in %v\n", 
 			len(entries), len(keys), exportOutput, duration)
@@ -249,7 +249,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if jsonOutput && exportOutput != "" {
+	if jsonOutput && exportOutput != "" && exportOutput != "-" {
 		result := map[string]interface{}{
 			"status":       "success",
 			"requested":    len(keys),

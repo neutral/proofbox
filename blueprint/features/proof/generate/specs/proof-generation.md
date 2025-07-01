@@ -54,6 +54,8 @@ struct SparseMerkleProof {
 }
 ```
 
+Note: The Go implementation uses a different structure where each sibling entry contains both a hash and a children map (up to 16 hashes per internal node). This allows for simpler verification logic at the cost of larger proof sizes.
+
 ## Size Benefits
 - Maximum proof size: 64 sibling hashes (256-bit key)
 - Typical size: Much smaller due to sparsity

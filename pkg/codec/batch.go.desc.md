@@ -6,18 +6,22 @@ Provides efficient batch encoding and decoding of multiple nodes in a single ope
 
 ## Design
 
-The batch format consists of:
-- Count: 4 bytes (uint32, little-endian) - number of nodes
-- Nodes: Sequence of length-prefixed encoded nodes
-  - Length: 4 bytes (uint32, little-endian) per node
-  - Data: Variable-length encoded node data
+The batch format consists of a sequence of key-node pairs, each with length prefixes:
+- For each entry:
+  - Key length: 4 bytes (uint32, big-endian)
+  - Key data: Variable-length encoded node key
+  - Node length: 4 bytes (uint32, big-endian)
+  - Node data: Variable-length encoded node data
+
+Note: Unlike some batch formats, there is no header count field. The decoder reads entries until EOF or error.
 
 ## Benefits
 
 1. **Single Allocation**: Pre-allocates buffer for entire batch
 2. **Streaming Support**: Can process nodes without loading entire batch
-3. **Error Recovery**: Length prefixes enable skipping corrupted nodes
+3. **Error Recovery**: Length prefixes enable skipping corrupted entries
 4. **Flexibility**: Each node can use different encoding (leaf vs internal)
+5. **Key Association**: Each node is stored with its key for direct mapping
 
 ## Use Cases
 

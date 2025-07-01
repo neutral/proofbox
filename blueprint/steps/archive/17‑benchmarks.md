@@ -13,7 +13,7 @@ Add benchmarks for hasher, lookup, and commit; save under `bench/`.
 - **Non‑Functional Goals – Performance & Scalability**.
   _What happens_:
 
-  - Encodes spec's benchmark aspirations ("bench throughput ≥ 20 k inserts/s") into repeatable Go benchmarks and spills raw numbers to files for trend tracking.
+  - Encodes spec's benchmark aspirations ("bench throughput ≥ 50 k inserts/s") into repeatable Go benchmarks and spills raw numbers to files for trend tracking.
 
 ## Technical Details
 
@@ -31,7 +31,7 @@ Per `proof-performance.md` and throughput requirements, the benchmark suite must
 
 2. **Performance Targets**
 
-   - Insert throughput: ≥ 20,000 ops/sec
+   - Insert throughput: ≥ 50,000 ops/sec (updated from 20,000 to match current requirements)
    - Lookup latency: p95 ≤ 1ms
    - Proof generation: p95 ≤ 5ms
    - Proof verification: p95 ≤ 300μs
@@ -95,7 +95,7 @@ Per `proof-performance.md` and throughput requirements, the benchmark suite must
 
 ### Performance Targets Met
 
-- [ ] Insert throughput ≥ 20K ops/sec at 1M keys
+- [ ] Insert throughput ≥ 50K ops/sec at 1M keys (updated to match current requirements)
 - [ ] Lookup latency p95 ≤ 1ms at 10M keys
 - [ ] Proof verification ≤ 300μs consistently
 - [ ] Linear scaling with batch size

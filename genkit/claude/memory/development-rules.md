@@ -19,7 +19,9 @@
    - Description files (.desc.md) provide the "why" behind the code, complementing the "what" in the source files and making the codebase more maintainable and understandable for future developers. Tests do not need to be documented with description files.
 
 4. **Active Step**
-   - Only the step with the least number in the steps folder should be worked on. All steps in the steps/archive folder are considered complete.
+   - Steps 1-20 have been completed and are archived in steps/archive folder
+   - Future steps (21-25) will be added to the steps folder when ready for implementation
+   - Only work on steps that are not in the archive folder
 
 ## Code Conventions
 
