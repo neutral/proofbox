@@ -6,42 +6,53 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cockroachdb/pebble"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
+	"github.com/neutral/proofbox/pkg/storage/memory"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// createTestDB creates an in-memory test database
-func createTestDB(t *testing.T) *pebble.DB {
+// createTestStorage creates an in-memory test storage
+func createTestStorage(t *testing.T) storage.Storage {
+	store := memory.NewStorage()
+	t.Cleanup(func() {
+		store.Close()
+	})
+	return store
+}
+
+// createPersistentTestStorage creates a persistent test storage using PebbleDB
+func createPersistentTestStorage(t *testing.T) (storage.Storage, string) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err, "Failed to create test database")
 
 	t.Cleanup(func() {
-		db.Close()
+		store.Close()
 		os.RemoveAll(tmpDir)
 	})
 
-	return db
+	return store, tmpDir
 }
 
 func TestEmptyTreeGet(t *testing.T) {
-	// Create in-memory database
-	db := createTestDB(t)
+	// Create in-memory storage
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	// Add empty tree at version 0
-	batch := db.NewBatch()
-	require.NoError(t, batch.Set(makeRootKey(0), types.EmptyHash().Bytes(), nil))
-	require.NoError(t, batch.Commit(pebble.Sync))
-	batch.Close()
+	rootKey := keyEncoder.RootKey(0)
+	require.NoError(t, store.Put(rootKey, types.EmptyHash().Bytes()))
 
 	// Create tree
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err, "Failed to create tree")
 
 	// Get from empty tree (version 0)
@@ -53,9 +64,10 @@ func TestEmptyTreeGet(t *testing.T) {
 }
 
 func TestVersionNotFound(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Try to get from non-existent version
@@ -65,18 +77,19 @@ func TestVersionNotFound(t *testing.T) {
 }
 
 func TestTreeInitialization(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	// Add some root hashes manually
-	batch := db.NewBatch()
-	require.NoError(t, batch.Set(makeRootKey(1), types.Hash{0x01}.Bytes(), nil))
-	require.NoError(t, batch.Set(makeRootKey(5), types.Hash{0x05}.Bytes(), nil))
-	require.NoError(t, batch.Set(makeRootKey(3), types.Hash{0x03}.Bytes(), nil))
-	require.NoError(t, batch.Commit(pebble.Sync))
+	batch := store.NewBatch()
+	require.NoError(t, batch.Put(keyEncoder.RootKey(1), types.Hash{0x01}.Bytes()))
+	require.NoError(t, batch.Put(keyEncoder.RootKey(5), types.Hash{0x05}.Bytes()))
+	require.NoError(t, batch.Put(keyEncoder.RootKey(3), types.Hash{0x03}.Bytes()))
+	require.NoError(t, batch.Commit(storage.CommitOptions{Sync: true}))
 	batch.Close()
 
 	// Create tree - should load existing versions
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err, "Failed to create tree")
 
 	// Check latest version
@@ -98,17 +111,18 @@ func TestTreeInitialization(t *testing.T) {
 }
 
 func TestIsEmpty(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	// Add empty tree (version 0 with empty hash)
-	batch := db.NewBatch()
-	require.NoError(t, batch.Set(makeRootKey(0), types.EmptyHash().Bytes(), nil))
+	batch := store.NewBatch()
+	require.NoError(t, batch.Put(keyEncoder.RootKey(0), types.EmptyHash().Bytes()))
 	// Add non-empty tree (version 1)
-	require.NoError(t, batch.Set(makeRootKey(1), types.Hash{0x01}.Bytes(), nil))
-	require.NoError(t, batch.Commit(pebble.Sync))
+	require.NoError(t, batch.Put(keyEncoder.RootKey(1), types.Hash{0x01}.Bytes()))
+	require.NoError(t, batch.Commit(storage.CommitOptions{Sync: true}))
 	batch.Close()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Check empty tree
@@ -194,8 +208,9 @@ func TestErrorHandlers(t *testing.T) {
 }
 
 func TestValidation(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("ValidateVersion", func(t *testing.T) {
@@ -224,15 +239,16 @@ func TestValidation(t *testing.T) {
 }
 
 func TestHealthChecker(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	// Add a version
-	batch := db.NewBatch()
-	require.NoError(t, batch.Set(makeRootKey(0), types.EmptyHash().Bytes(), nil))
-	require.NoError(t, batch.Commit(pebble.Sync))
+	batch := store.NewBatch()
+	require.NoError(t, batch.Put(keyEncoder.RootKey(0), types.EmptyHash().Bytes()))
+	require.NoError(t, batch.Commit(storage.CommitOptions{Sync: true}))
 	batch.Close()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	checker := NewTreeHealthChecker(tree)

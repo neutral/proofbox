@@ -3,6 +3,7 @@ package tree
 import (
 	"testing"
 
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,8 +11,9 @@ import (
 
 // TestVersionChildNodeBug tests that child nodes respect version boundaries
 func TestVersionChildNodeBug(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create keys that will share internal nodes (same prefix)
@@ -80,8 +82,9 @@ func TestVersionChildNodeBug(t *testing.T) {
 
 // TestComplexVersionBoundaries tests more complex scenarios with many keys
 func TestComplexVersionBoundaries(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create a series of versions with overlapping key sets

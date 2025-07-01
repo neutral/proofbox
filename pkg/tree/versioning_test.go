@@ -5,7 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cockroachdb/pebble"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,12 +17,15 @@ func TestBasicVersioning(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create version 1
@@ -75,12 +79,15 @@ func TestVersionAbort(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Start version but abort
@@ -110,12 +117,15 @@ func TestStructuralSharing(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create version 1 with multiple keys
@@ -170,12 +180,15 @@ func TestDeleteInVersion(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Version 1: Insert keys
@@ -228,12 +241,15 @@ func TestProofAcrossVersions(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Version 1
@@ -280,12 +296,15 @@ func BenchmarkStructuralSharing(b *testing.B) {
 	tmpDir := b.TempDir()
 	dbPath := filepath.Join(tmpDir, "bench.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(b, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(b, err)
 
 	// Create initial version with many keys

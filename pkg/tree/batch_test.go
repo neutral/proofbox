@@ -6,16 +6,18 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cockroachdb/pebble"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBatchTransaction(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("Basic Batch Operations", func(t *testing.T) {
@@ -227,12 +229,13 @@ func TestBatchOptimizer(t *testing.T) {
 }
 
 func TestParallelBatchProcessing(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	config := DefaultTreeConfig()
 	config.UseParallelBatching = true
 
-	tree, err := NewTree(db, config)
+	tree, err := NewTree(store, keyEncoder, config)
 	require.NoError(t, err)
 
 	// Create a large batch that will trigger parallel processing
@@ -263,9 +266,10 @@ func TestParallelBatchProcessing(t *testing.T) {
 }
 
 func TestBatchValidation(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("Valid Batch", func(t *testing.T) {
@@ -328,11 +332,15 @@ func BenchmarkBatchOperations(b *testing.B) {
 	require.NoError(b, err)
 	defer os.RemoveAll(dir)
 
-	db, err := pebble.Open(dir, &pebble.Options{})
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dir, opts)
 	require.NoError(b, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(b, err)
 
 	b.Run("Sequential Batch", func(b *testing.B) {
@@ -352,7 +360,7 @@ func BenchmarkBatchOperations(b *testing.B) {
 		config := DefaultTreeConfig()
 		config.UseParallelBatching = true
 
-		tree2, err := NewTree(db, config)
+		tree2, err := NewTree(store, keyEncoder, config)
 		require.NoError(b, err)
 
 		b.ResetTimer()
@@ -374,7 +382,7 @@ func BenchmarkBatchOperations(b *testing.B) {
 			EnableDeduplication: true,
 		})
 
-		tree3, err := NewTree(db, config)
+		tree3, err := NewTree(store, keyEncoder, config)
 		require.NoError(b, err)
 
 		b.ResetTimer()

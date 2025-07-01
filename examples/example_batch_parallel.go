@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 )
@@ -13,7 +13,7 @@ import (
 // This example demonstrates parallel batch processing for large batches
 func main() {
 	// Create temporary database
-	db, cleanup, err := CreateTempDB("batch-parallel")
+	store, cleanup, err := CreateTempStorage("batch-parallel")
 	if err != nil {
 		fmt.Printf("Failed to create database: %v\n", err)
 		os.Exit(1)
@@ -23,12 +23,12 @@ func main() {
 	PrintSection("Parallel Batch Processing Example")
 	
 	// Test both sequential and parallel processing
-	runComparison := func(db *pebble.DB, useParallel bool, numKeys int) (time.Duration, types.Version) {
+	runComparison := func(store storage.Storage, useParallel bool, numKeys int) (time.Duration, types.Version) {
 		// Create tree with specific config
 		config := tree.DefaultTreeConfig()
 		config.UseParallelBatching = useParallel
 		
-		jmt, err := tree.NewTree(db, config)
+		jmt, err := tree.NewTree(store, nil, config)
 		if err != nil {
 			PrintError("Failed to create tree: %v", err)
 			return 0, 0
@@ -111,8 +111,8 @@ func main() {
 		}
 		PrintInfo("Note: %s", threshold)
 		
-		seqDuration, seqVersion := runComparison(db, false, size)
-		parallelDuration, parallelVersion := runComparison(db, true, size)
+		seqDuration, seqVersion := runComparison(store, false, size)
+		parallelDuration, parallelVersion := runComparison(store, true, size)
 		
 		if seqVersion > 0 && parallelVersion > 0 {
 			speedup := float64(seqDuration) / float64(parallelDuration)
@@ -131,7 +131,7 @@ func main() {
 		// Clean up and recreate database for next test
 		if size < len(batchSizes)-1 {
 			cleanup()
-			db, cleanup, err = CreateTempDB(fmt.Sprintf("batch-parallel-%d", size))
+			store, cleanup, err = CreateTempStorage(fmt.Sprintf("batch-parallel-%d", size))
 			if err != nil {
 				PrintError("Failed to create database: %v", err)
 				return

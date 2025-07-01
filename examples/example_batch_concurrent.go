@@ -12,7 +12,7 @@ import (
 // This example demonstrates concurrent batch operations
 func main() {
 	// Create temporary database
-	db, cleanup, err := CreateTempDB("batch-concurrent")
+	store, cleanup, err := CreateTempStorage("batch-concurrent")
 	if err != nil {
 		fmt.Printf("Failed to create database: %v\n", err)
 		os.Exit(1)
@@ -20,7 +20,7 @@ func main() {
 	defer cleanup()
 
 	// Create tree
-	jmt, err := CreateExampleTree(db)
+	jmt, err := CreateExampleTree(store)
 	if err != nil {
 		fmt.Printf("Failed to create tree: %v\n", err)
 		os.Exit(1)

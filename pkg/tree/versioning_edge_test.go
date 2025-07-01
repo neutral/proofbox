@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,8 +12,9 @@ import (
 
 // TestVersionValidation tests error cases for version operations
 func TestVersionValidation(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Test 1: Operations on non-existent version
@@ -110,8 +112,9 @@ func TestVersionValidation(t *testing.T) {
 
 // TestBatchOperationsInVersion tests multiple operations within a single version
 func TestBatchOperationsInVersion(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("MultiplePutsInVersion", func(t *testing.T) {
@@ -264,8 +267,9 @@ func TestBatchOperationsInVersion(t *testing.T) {
 
 // TestEmptyTreeVersioning tests versioning with empty trees
 func TestEmptyTreeVersioning(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("VersioningEmptyTree", func(t *testing.T) {
@@ -319,8 +323,9 @@ func TestEmptyTreeVersioning(t *testing.T) {
 
 // TestDeepTreeVersioning tests versioning with very deep trees
 func TestDeepTreeVersioning(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("MaxDepthTree", func(t *testing.T) {

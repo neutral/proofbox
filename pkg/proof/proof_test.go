@@ -3,10 +3,10 @@ package proof
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"testing"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
+	"github.com/neutral/proofbox/pkg/storage/memory"
 	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -14,15 +14,11 @@ import (
 )
 
 func createTestTree(t testing.TB) *tree.Tree {
-	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, "test.db")
+	store := memory.NewStorage()
+	t.Cleanup(func() { store.Close() })
 	
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
-	require.NoError(t, err)
-	t.Cleanup(func() { db.Close() })
-	
-	tree, err := tree.NewTree(db, tree.DefaultTreeConfig())
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := tree.NewTree(store, keyEncoder, tree.DefaultTreeConfig())
 	require.NoError(t, err)
 	return tree
 }

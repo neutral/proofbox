@@ -51,7 +51,7 @@ func (hc *TreeHealthChecker) verifyNode(ctx context.Context, reader *TreeReader,
 	}
 
 	// Create string key for visited map
-	visitKey := string(makeNodeKey(key))
+	visitKey := string(hc.tree.keyEncoder.NodeKey(key))
 
 	// Avoid cycles
 	if visited[visitKey] {

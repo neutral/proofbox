@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,8 +13,9 @@ import (
 
 // TestGCWithPendingVersions tests GC behavior with pending versions
 func TestGCWithPendingVersions(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Set aggressive GC policy
@@ -56,8 +58,9 @@ func TestGCWithPendingVersions(t *testing.T) {
 
 	t.Run("GCDoesNotRemoveCurrentVersion", func(t *testing.T) {
 		// Create fresh tree
-		db2 := createTestDB(t)
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		store2 := createTestStorage(t)
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		tree2.SetVersionRetentionPolicy(RetentionPolicyCount, 1, 0) // Keep only 1 version
@@ -97,8 +100,9 @@ func TestGCWithPendingVersions(t *testing.T) {
 	})
 
 	t.Run("GCWithAbortedVersions", func(t *testing.T) {
-		db3 := createTestDB(t)
-		tree3, err := NewTree(db3, DefaultTreeConfig())
+		store3 := createTestStorage(t)
+		keyEncoder3 := storage.NewDefaultKeyEncoder()
+		tree3, err := NewTree(store3, keyEncoder3, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		tree3.SetVersionRetentionPolicy(RetentionPolicyCount, 2, 0)
@@ -135,8 +139,9 @@ func TestGCWithPendingVersions(t *testing.T) {
 
 // TestTimeBasedGC tests time-based garbage collection
 func TestTimeBasedGC(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("RemoveOldVersions", func(t *testing.T) {
@@ -178,8 +183,9 @@ func TestTimeBasedGC(t *testing.T) {
 	})
 
 	t.Run("MinVersionsRespected", func(t *testing.T) {
-		db2 := createTestDB(t)
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		store2 := createTestStorage(t)
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Set time-based retention with min versions
@@ -208,8 +214,9 @@ func TestTimeBasedGC(t *testing.T) {
 
 // TestGCMemoryReclamation tests that GC actually frees memory
 func TestGCMemoryReclamation(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Set aggressive GC
@@ -244,8 +251,9 @@ func TestGCMemoryReclamation(t *testing.T) {
 
 	t.Run("RootHashCacheCleared", func(t *testing.T) {
 		// Create fresh tree
-		db2 := createTestDB(t)
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		store2 := createTestStorage(t)
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		tree2.SetVersionRetentionPolicy(RetentionPolicyCount, 5, 0)
@@ -280,8 +288,9 @@ func TestGCMemoryReclamation(t *testing.T) {
 
 // TestGCConcurrentOperations tests GC during concurrent operations
 func TestGCConcurrentOperations(t *testing.T) {
-	db := createTestDB(t)
-	tree, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	tree.SetVersionRetentionPolicy(RetentionPolicyCount, 20, 0)

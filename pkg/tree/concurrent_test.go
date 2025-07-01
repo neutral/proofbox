@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cockroachdb/pebble"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,12 +19,15 @@ func TestConcurrentVersionCreation(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create multiple versions concurrently
@@ -100,12 +104,15 @@ func TestConcurrentReadsWhileWriting(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Insert initial data
@@ -180,12 +187,15 @@ func TestVersionGarbageCollectionConcurrency(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Set retention policy to keep only 10 versions
@@ -253,12 +263,15 @@ func TestConcurrentAborts(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(t, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create multiple versions and randomly abort some

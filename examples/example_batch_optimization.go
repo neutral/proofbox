@@ -11,7 +11,7 @@ import (
 // This example demonstrates batch optimization features
 func main() {
 	// Create temporary database
-	db, cleanup, err := CreateTempDB("batch-optimization")
+	store, cleanup, err := CreateTempStorage("batch-optimization")
 	if err != nil {
 		fmt.Printf("Failed to create database: %v\n", err)
 		os.Exit(1)
@@ -29,7 +29,7 @@ func main() {
 		EnableCoalescing:    true,
 	})
 	
-	jmt, err := tree.NewTree(db, config)
+	jmt, err := tree.NewTree(store, nil, config)
 	if err != nil {
 		PrintError("Failed to create tree: %v", err)
 		os.Exit(1)

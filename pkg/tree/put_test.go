@@ -5,15 +5,17 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPut_InsertIntoEmptyTree(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Insert into empty tree
@@ -44,9 +46,10 @@ func TestPut_InsertIntoEmptyTree(t *testing.T) {
 }
 
 func TestPut_UpdateExistingKey(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("update-key"))
@@ -81,7 +84,8 @@ func TestPut_UpdateExistingKey(t *testing.T) {
 }
 
 func TestPut_Persistence(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	key := types.KeyHash([]byte("persistent-key"))
 	value := []byte("persistent-value")
@@ -89,7 +93,7 @@ func TestPut_Persistence(t *testing.T) {
 
 	// Insert with first tree instance
 	{
-		tree, err := NewTree(db, DefaultTreeConfig())
+		tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		v, err := tree.Put(key, value)
@@ -98,7 +102,7 @@ func TestPut_Persistence(t *testing.T) {
 	}
 
 	// Create new tree instance
-	tree2, err := NewTree(db, DefaultTreeConfig())
+	tree2, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Should load latest version
@@ -116,9 +120,10 @@ func TestPut_Persistence(t *testing.T) {
 }
 
 func TestPut_ValueSizeLimit(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("large-key"))
@@ -140,9 +145,10 @@ func TestPut_ValueSizeLimit(t *testing.T) {
 }
 
 func TestPut_InvalidInputs(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -169,9 +175,10 @@ func TestPut_InvalidInputs(t *testing.T) {
 }
 
 func TestPut_ConcurrentWrites(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Run concurrent puts
@@ -209,9 +216,10 @@ func TestPut_ConcurrentWrites(t *testing.T) {
 }
 
 func TestPut_DifferentKeySuccess(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Insert first key
@@ -238,9 +246,10 @@ func TestPut_DifferentKeySuccess(t *testing.T) {
 }
 
 func TestPut_MultipleUpdates(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("multi-update-key"))
@@ -268,9 +277,10 @@ func TestPut_MultipleUpdates(t *testing.T) {
 }
 
 func TestPut_LargeValues(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Test with various sizes - using same key for all (no leaf splitting in step 09)

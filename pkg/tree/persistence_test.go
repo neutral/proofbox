@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cockroachdb/pebble"
 	"github.com/neutral/proofbox/pkg/codec"
+	"github.com/neutral/proofbox/pkg/storage"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,11 +20,14 @@ func TestVersionPersistence(t *testing.T) {
 
 	t.Run("BasicPersistence", func(t *testing.T) {
 		// Create tree and add data
-		opts := &pebble.Options{}
-		db1, err := pebble.Open(dbPath, opts)
+		opts := &pebblestorage.Options{
+			EnableMetrics: false,
+		}
+		store1, err := pebblestorage.NewStorage(dbPath, opts)
 		require.NoError(t, err)
+		keyEncoder1 := storage.NewDefaultKeyEncoder()
 
-		tree1, err := NewTree(db1, DefaultTreeConfig())
+		tree1, err := NewTree(store1, keyEncoder1, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Create multiple versions
@@ -37,14 +41,15 @@ func TestVersionPersistence(t *testing.T) {
 		}
 
 		// Close tree
-		db1.Close()
+		store1.Close()
 
 		// Reopen tree
-		db2, err := pebble.Open(dbPath, opts)
+		store2, err := pebblestorage.NewStorage(dbPath, opts)
 		require.NoError(t, err)
-		defer db2.Close()
+		defer store2.Close()
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Verify latest version
@@ -69,11 +74,14 @@ func TestVersionPersistence(t *testing.T) {
 		tmpDir2 := t.TempDir()
 		dbPath2 := filepath.Join(tmpDir2, "pending.db")
 
-		opts := &pebble.Options{}
-		db1, err := pebble.Open(dbPath2, opts)
+		opts := &pebblestorage.Options{
+			EnableMetrics: false,
+		}
+		store1, err := pebblestorage.NewStorage(dbPath2, opts)
 		require.NoError(t, err)
+		keyEncoder1 := storage.NewDefaultKeyEncoder()
 
-		tree1, err := NewTree(db1, DefaultTreeConfig())
+		tree1, err := NewTree(store1, keyEncoder1, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Create committed version
@@ -90,14 +98,15 @@ func TestVersionPersistence(t *testing.T) {
 		require.NoError(t, err)
 
 		// Close without committing
-		db1.Close()
+		store1.Close()
 
 		// Reopen
-		db2, err := pebble.Open(dbPath2, opts)
+		store2, err := pebblestorage.NewStorage(dbPath2, opts)
 		require.NoError(t, err)
-		defer db2.Close()
+		defer store2.Close()
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Committed version should be accessible
@@ -124,11 +133,14 @@ func TestVersionPersistence(t *testing.T) {
 		tmpDir3 := t.TempDir()
 		dbPath3 := filepath.Join(tmpDir3, "state.db")
 
-		opts := &pebble.Options{}
-		db1, err := pebble.Open(dbPath3, opts)
+		opts := &pebblestorage.Options{
+			EnableMetrics: false,
+		}
+		store1, err := pebblestorage.NewStorage(dbPath3, opts)
 		require.NoError(t, err)
+		keyEncoder1 := storage.NewDefaultKeyEncoder()
 
-		tree1, err := NewTree(db1, DefaultTreeConfig())
+		tree1, err := NewTree(store1, keyEncoder1, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Set custom retention policy
@@ -146,14 +158,15 @@ func TestVersionPersistence(t *testing.T) {
 		removed1, err := tree1.CollectVersionGarbage()
 		require.NoError(t, err)
 
-		db1.Close()
+		store1.Close()
 
 		// Reopen
-		db2, err := pebble.Open(dbPath3, opts)
+		store2, err := pebblestorage.NewStorage(dbPath3, opts)
 		require.NoError(t, err)
-		defer db2.Close()
+		defer store2.Close()
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Latest version should match
@@ -179,11 +192,14 @@ func TestCrashRecovery(t *testing.T) {
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "crash.db")
 
-		opts := &pebble.Options{}
-		db, err := pebble.Open(dbPath, opts)
+		opts := &pebblestorage.Options{
+			EnableMetrics: false,
+		}
+		store, err := pebblestorage.NewStorage(dbPath, opts)
 		require.NoError(t, err)
+		keyEncoder := storage.NewDefaultKeyEncoder()
 
-		tree, err := NewTree(db, DefaultTreeConfig())
+		tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Create initial version
@@ -205,31 +221,32 @@ func TestCrashRecovery(t *testing.T) {
 		require.NoError(t, err)
 
 		// Write nodes but don't write root hash (simulating crash)
-		writeBatch := db.NewBatch()
+		writeBatch := store.NewBatch()
 		nodeCodec := &codec.NodeCodec{}
 
 		for _, nodeWrite := range batch.NewNodes {
 			data, err := nodeCodec.EncodeNode(nodeWrite.Node)
 			require.NoError(t, err)
 
-			storageKey := makeNodeKey(nodeWrite.Key)
-			err = writeBatch.Set(storageKey, data, nil)
+			storageKey := storage.NewDefaultKeyEncoder().NodeKey(nodeWrite.Key)
+			err = writeBatch.Put(storageKey, data)
 			require.NoError(t, err)
 		}
 
 		// Commit partial write (no root hash)
-		err = writeBatch.Commit(pebble.Sync)
+		err = writeBatch.Commit(storage.CommitOptions{Sync: true})
 		require.NoError(t, err)
 		writeBatch.Close()
 
 		// Close and reopen
-		db.Close()
+		store.Close()
 
-		db2, err := pebble.Open(dbPath, opts)
+		store2, err := pebblestorage.NewStorage(dbPath, opts)
 		require.NoError(t, err)
-		defer db2.Close()
+		defer store2.Close()
+		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(db2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
 		require.NoError(t, err)
 
 		// Version 2 should not exist (no root hash written)

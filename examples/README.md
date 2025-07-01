@@ -7,13 +7,31 @@ This directory contains interactive examples demonstrating various features of t
 To run any example:
 
 ```bash
-# From the project root
-cd examples && go run example_batch_basic.go examples_utils.go
+# From the examples directory
+go run example_batch_basic.go examples_utils.go
 
-# Or use the convenience scripts
-./examples/run_all.sh              # Run all examples
-./examples/run_example.sh batch_basic  # Run a specific example
+# Or use the Makefile
+make                          # Run all examples
+make run-batch_basic         # Run a specific example
+
+# Or use the shell scripts
+./run_all.sh                 # Run all examples
+./run_example.sh batch_basic # Run a specific example
 ```
+
+## Integration with Main Module
+
+These examples are part of the main ProofBox module and don't have a separate `go.mod`. This ensures they always use the latest local code and makes development easier.
+
+### IDE Configuration
+
+Since these are `package main` programs with shared utilities, some IDEs might show errors. To resolve:
+
+1. **VS Code**: Open the project from the root directory, not the examples directory
+2. **GoLand**: Mark the examples directory as "Excluded" if you see errors
+3. **Command Line**: Examples will always work with `go run` regardless of IDE errors
+
+The examples are designed to be run, not imported, so IDE warnings can be safely ignored.
 
 ## Available Examples
 

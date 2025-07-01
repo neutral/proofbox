@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
 )
@@ -63,8 +64,8 @@ func PrintBatchOperation(op string, key []byte, value []byte) {
 	}
 }
 
-// CreateTempDB creates a temporary database for examples
-func CreateTempDB(name string) (*pebble.DB, func(), error) {
+// CreateTempStorage creates temporary storage for examples
+func CreateTempStorage(name string) (storage.Storage, func(), error) {
 	tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("proofbox-example-%s", name))
 	
 	// Clean up any existing directory
@@ -75,25 +76,31 @@ func CreateTempDB(name string) (*pebble.DB, func(), error) {
 		return nil, nil, err
 	}
 	
-	// Open database
-	db, err := pebble.Open(tmpDir, &pebble.Options{})
+	// Create PebbleDB storage using the proper driver
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	
+	store, err := pebblestorage.NewStorage(tmpDir, opts)
 	if err != nil {
 		os.RemoveAll(tmpDir)
 		return nil, nil, err
 	}
 	
 	cleanup := func() {
-		db.Close()
+		store.Close()
 		os.RemoveAll(tmpDir)
 	}
 	
-	return db, cleanup, nil
+	return store, cleanup, nil
 }
 
+
 // CreateExampleTree creates a tree with some initial data
-func CreateExampleTree(db *pebble.DB) (*tree.Tree, error) {
+func CreateExampleTree(store storage.Storage) (*tree.Tree, error) {
 	config := tree.DefaultTreeConfig()
-	jmt, err := tree.NewTree(db, config)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	jmt, err := tree.NewTree(store, keyEncoder, config)
 	if err != nil {
 		return nil, err
 	}

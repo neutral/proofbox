@@ -11,7 +11,7 @@ import (
 // This example demonstrates the internal structure of UpdateBatch
 func main() {
 	// Create temporary database
-	db, cleanup, err := CreateTempDB("batch-internals")
+	store, cleanup, err := CreateTempStorage("batch-internals")
 	if err != nil {
 		fmt.Printf("Failed to create database: %v\n", err)
 		os.Exit(1)
@@ -19,7 +19,7 @@ func main() {
 	defer cleanup()
 
 	// Create tree
-	jmt, err := tree.NewTree(db, tree.DefaultTreeConfig())
+	jmt, err := tree.NewTree(store, nil, tree.DefaultTreeConfig())
 	if err != nil {
 		fmt.Printf("Failed to create tree: %v\n", err)
 		os.Exit(1)

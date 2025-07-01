@@ -5,7 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cockroachdb/pebble"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/require"
 )
@@ -15,12 +16,15 @@ func BenchmarkVersionCreation(b *testing.B) {
 	tmpDir := b.TempDir()
 	dbPath := filepath.Join(tmpDir, "bench.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(b, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(b, err)
 
 	// Pre-populate with some data
@@ -59,12 +63,15 @@ func BenchmarkStructuralSharingOverhead(b *testing.B) {
 	tmpDir := b.TempDir()
 	dbPath := filepath.Join(tmpDir, "bench.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(b, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(b, err)
 
 	// Create a tree with many nodes
@@ -96,12 +103,15 @@ func BenchmarkVersionedGet(b *testing.B) {
 	tmpDir := b.TempDir()
 	dbPath := filepath.Join(tmpDir, "bench.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(b, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(b, err)
 
 	// Create multiple versions
@@ -132,12 +142,15 @@ func BenchmarkGarbageCollection(b *testing.B) {
 	tmpDir := b.TempDir()
 	dbPath := filepath.Join(tmpDir, "bench.db")
 
-	opts := &pebble.Options{}
-	db, err := pebble.Open(dbPath, opts)
+	opts := &pebblestorage.Options{
+		EnableMetrics: false,
+	}
+	store, err := pebblestorage.NewStorage(dbPath, opts)
 	require.NoError(b, err)
-	defer db.Close()
+	defer store.Close()
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(b, err)
 
 	// Set retention policy
@@ -189,12 +202,16 @@ func BenchmarkMemoryUsageWithVersions(b *testing.B) {
 			tmpDir := b.TempDir()
 			dbPath := filepath.Join(tmpDir, "bench.db")
 
-			opts := &pebble.Options{}
-			db, err := pebble.Open(dbPath, opts)
+			opts := &pebblestorage.Options{
+				EnableMetrics: false,
+			}
+			store, err := pebblestorage.NewStorage(dbPath, opts)
 			require.NoError(b, err)
-			defer db.Close()
+			defer store.Close()
 
-			tree, err := NewTree(db, DefaultTreeConfig())
+			keyEncoder := storage.NewDefaultKeyEncoder()
+
+			tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 			require.NoError(b, err)
 
 			tree.SetVersionRetentionPolicy(scenario.retention, scenario.keep, 0)

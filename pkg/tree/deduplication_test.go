@@ -3,7 +3,7 @@ package tree
 import (
 	"testing"
 
-	"github.com/cockroachdb/pebble"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,9 +16,10 @@ func TestValueDeduplication(t *testing.T) {
 }
 
 func TestCrossVersionDeduplication(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("test-key"))
@@ -39,11 +40,10 @@ func TestCrossVersionDeduplication(t *testing.T) {
 	}
 
 	// Verify storage efficiency - count value keys
-	iter, err := db.NewIter(&pebble.IterOptions{
+	iter := store.NewIterator(&storage.IteratorOptions{
 		LowerBound: []byte{'v'},
 		UpperBound: []byte{'w'},
 	})
-	require.NoError(t, err)
 	defer iter.Close()
 
 	valueCount := 0
@@ -57,9 +57,10 @@ func TestCrossVersionDeduplication(t *testing.T) {
 }
 
 func TestDifferentValuesNotDeduplicated(t *testing.T) {
-	db := createTestDB(t)
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(db, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("test-key"))
@@ -73,11 +74,10 @@ func TestDifferentValuesNotDeduplicated(t *testing.T) {
 	}
 
 	// Count stored values
-	iter, err := db.NewIter(&pebble.IterOptions{
+	iter := store.NewIterator(&storage.IteratorOptions{
 		LowerBound: []byte{'v'},
 		UpperBound: []byte{'w'},
 	})
-	require.NoError(t, err)
 	defer iter.Close()
 
 	valueCount := 0

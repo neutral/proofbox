@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/neutral/proofbox/pkg/crypto"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,8 +12,9 @@ import (
 
 // TestValueRetrieval reproduces the value retrieval bug where Get returns empty values
 func TestValueRetrieval(t *testing.T) {
-	db := createTestDB(t)
-	tr, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tr, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Test data
@@ -36,8 +38,9 @@ func TestValueRetrieval(t *testing.T) {
 
 // TestBatchValueRetrieval tests value retrieval after batch operations
 func TestBatchValueRetrieval(t *testing.T) {
-	db := createTestDB(t)
-	tr, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tr, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Create batch
@@ -74,8 +77,9 @@ func TestBatchValueRetrieval(t *testing.T) {
 
 // TestDirectStorageAccess verifies values are actually in storage and can be loaded
 func TestDirectStorageAccess(t *testing.T) {
-	db := createTestDB(t)
-	tr, err := NewTree(db, DefaultTreeConfig())
+	store := createTestStorage(t)
+	keyEncoder := storage.NewDefaultKeyEncoder()
+	tr, err := NewTree(store, keyEncoder, DefaultTreeConfig())
 	require.NoError(t, err)
 
 	// Test multiple keys to ensure we're testing real storage

@@ -6,15 +6,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cockroachdb/pebble"
 	"github.com/neutral/proofbox/pkg/codec"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 )
 
 // Tree represents a Jellyfish Merkle Tree with concurrency support
 type Tree struct {
 	// Storage backend
-	db *pebble.DB
+	db storage.Storage
+
+	// Key encoder for storage keys
+	keyEncoder storage.KeyEncoder
 
 	// Version management (protected by mu)
 	mu         sync.RWMutex                 // Protects version metadata
@@ -62,22 +65,17 @@ func (t *Tree) loadNodeFromStorage(key types.NodeKey) (types.Node, error) {
 	}
 
 	// Load from storage
-	storageKey := makeNodeKey(key)
-	data, closer, err := t.db.Get(storageKey)
-	if err == pebble.ErrNotFound {
-		return nil, fmt.Errorf("node not found")
-	}
+	storageKey := t.keyEncoder.NodeKey(key)
+	data, err := t.db.Get(storageKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load node: %w", err)
 	}
-	defer closer.Close()
-
-	// Copy data before closing
-	dataCopy := make([]byte, len(data))
-	copy(dataCopy, data)
+	if data == nil {
+		return nil, fmt.Errorf("node not found")
+	}
 
 	// Decode node
-	node, err := codec.DecodeNode(dataCopy, key.Version)
+	node, err := codec.DecodeNode(data, key.Version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode node: %w", err)
 	}
@@ -89,13 +87,17 @@ func (t *Tree) loadNodeFromStorage(key types.NodeKey) (types.Node, error) {
 }
 
 // NewTree creates a new Jellyfish Merkle Tree
-func NewTree(db *pebble.DB, config TreeConfig) (*Tree, error) {
+func NewTree(db storage.Storage, keyEncoder storage.KeyEncoder, config TreeConfig) (*Tree, error) {
 	if db == nil {
-		return nil, errors.New("database cannot be nil")
+		return nil, errors.New("storage cannot be nil")
+	}
+	if keyEncoder == nil {
+		keyEncoder = storage.NewDefaultKeyEncoder()
 	}
 
 	tree := &Tree{
 		db:             db,
+		keyEncoder:     keyEncoder,
 		rootHashes:     make(map[types.Version]types.Hash),
 		config:         config,
 		versionManager: NewVersionManager(),
@@ -172,19 +174,15 @@ func (t *Tree) IsEmpty(version types.Version) (bool, error) {
 
 // loadRootHashes loads all version -> root hash mappings from storage
 func (t *Tree) loadRootHashes() error {
-	prefix := []byte(types.RootKeyPrefix)
-	iter, err := t.db.NewIter(&pebble.IterOptions{
-		LowerBound: prefix,
-		UpperBound: append(append([]byte{}, prefix...), 0xFF),
+	prefix := t.keyEncoder.RootKeyPrefix()
+	iter := t.db.NewIterator(&storage.IteratorOptions{
+		Prefix: prefix,
 	})
-	if err != nil {
-		return fmt.Errorf("failed to create iterator: %w", err)
-	}
 	defer iter.Close()
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		// Parse version from key
-		version, err := parseRootKey(iter.Key())
+		version, err := t.keyEncoder.ParseRootKey(iter.Key())
 		if err != nil {
 			return err
 		}
@@ -425,23 +423,23 @@ func (t *Tree) CommitVersion(version types.Version) error {
 			return fmt.Errorf("failed to encode node: %w", err)
 		}
 
-		storageKey := makeNodeKey(nodeWrite.Key)
-		if err := writeBatch.Set(storageKey, data, nil); err != nil {
+		storageKey := t.keyEncoder.NodeKey(nodeWrite.Key)
+		if err := writeBatch.Put(storageKey, data); err != nil {
 			return fmt.Errorf("failed to write node: %w", err)
 		}
 
 		// If it's a leaf node, also store the value
 		if leaf, ok := nodeWrite.Node.(*LeafNode); ok && leaf.Value() != nil {
-			valueKey := makeValueKey(leaf.ValueHash())
-			if err := writeBatch.Set(valueKey, leaf.Value(), nil); err != nil {
+			valueKey := t.keyEncoder.ValueKey(leaf.ValueHash())
+			if err := writeBatch.Put(valueKey, leaf.Value()); err != nil {
 				return fmt.Errorf("failed to write value: %w", err)
 			}
 		}
 	}
 
 	// Write root hash
-	rootKey := makeRootKey(version)
-	if err := writeBatch.Set(rootKey, batch.NewRootHash[:], nil); err != nil {
+	rootKey := t.keyEncoder.RootKey(version)
+	if err := writeBatch.Put(rootKey, batch.NewRootHash[:]); err != nil {
 		return fmt.Errorf("failed to write root: %w", err)
 	}
 
@@ -462,7 +460,7 @@ func (t *Tree) CommitVersion(version types.Version) error {
 	}
 
 	// Commit to storage
-	if err := writeBatch.Commit(pebble.Sync); err != nil {
+	if err := writeBatch.Commit(storage.CommitOptions{Sync: true}); err != nil {
 		return fmt.Errorf("storage commit failed: %w", err)
 	}
 
@@ -472,13 +470,13 @@ func (t *Tree) CommitVersion(version types.Version) error {
 	t.latestVer = newLatestVer
 	t.mu.Unlock()
 
-	// Update version manager (this should not fail)
+	// Update version manager (critical - must succeed)
 	nodeCount := int64(len(batch.NewNodes))
 	if err := t.versionManager.Commit(version, batch.NewRootHash, nodeCount); err != nil {
-		// This is bad - storage committed but version manager failed
-		// Log error but don't fail - the version is committed to storage
-		// TODO: Add proper logging
-		_ = err
+		// This is a critical error - storage committed but version manager failed
+		// The tree is now in an inconsistent state
+		// We should panic here as continuing would lead to data corruption
+		panic(fmt.Sprintf("version manager commit failed after storage commit: %v", err))
 	}
 
 	return nil

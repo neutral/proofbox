@@ -4,15 +4,15 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/cockroachdb/pebble"
 	"github.com/neutral/proofbox/pkg/codec"
+	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 )
 
 // TreeReader handles read operations with a snapshot
 type TreeReader struct {
 	tree     *Tree
-	snapshot *pebble.Snapshot
+	snapshot storage.Snapshot
 	version  types.Version
 	rootHash types.Hash
 }
@@ -142,22 +142,17 @@ func (r *TreeReader) loadNode(key types.NodeKey) (types.Node, error) {
 	}
 
 	// Load from storage
-	storageKey := makeNodeKey(key)
-	data, closer, err := r.snapshot.Get(storageKey)
-	if err == pebble.ErrNotFound {
-		return nil, nil
-	}
+	storageKey := r.tree.keyEncoder.NodeKey(key)
+	data, err := r.snapshot.Get(storageKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load node: %w", err)
 	}
-	defer closer.Close()
-
-	// Copy data before closing
-	dataCopy := make([]byte, len(data))
-	copy(dataCopy, data)
+	if data == nil {
+		return nil, nil
+	}
 
 	// Decode node
-	node, err := codec.DecodeNode(dataCopy, key.Version)
+	node, err := codec.DecodeNode(data, key.Version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode node: %w", err)
 	}
@@ -170,12 +165,11 @@ func (r *TreeReader) loadNode(key types.NodeKey) (types.Node, error) {
 
 // loadValue loads a value by its hash
 func (r *TreeReader) loadValue(hash types.Hash) ([]byte, error) {
-	valueKey := makeValueKey(hash)
-	data, closer, err := r.snapshot.Get(valueKey)
+	valueKey := r.tree.keyEncoder.ValueKey(hash)
+	data, err := r.snapshot.Get(valueKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load value: %w", err)
 	}
-	defer closer.Close()
 
 	// Copy data before closing
 	result := make([]byte, len(data))
