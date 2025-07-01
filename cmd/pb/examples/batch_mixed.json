@@ -1,0 +1,27 @@
+{
+  "operations": [
+    {
+      "type": "put",
+      "key": "user:1001",
+      "value": "{\"name\": \"Alice\", \"balance\": 1000}"
+    },
+    {
+      "type": "put",
+      "key": "user:1002",
+      "value": "{\"name\": \"Bob\", \"balance\": 2000}"
+    },
+    {
+      "type": "delete",
+      "key": "temp:session:12345"
+    },
+    {
+      "type": "put",
+      "key": "counter:total",
+      "value": "2"
+    },
+    {
+      "type": "delete",
+      "key": "cache:old:data"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "operations": [
+    {"type": "put", "key": "product:001", "value": "{\"name\": \"Laptop\", \"price\": 999.99}"},
+    {"type": "put", "key": "product:002", "value": "{\"name\": \"Mouse\", \"price\": 29.99}"},
+    {"type": "put", "key": "product:003", "value": "{\"name\": \"Keyboard\", \"price\": 79.99}"},
+    {"type": "put", "key": "product:004", "value": "{\"name\": \"Monitor\", \"price\": 299.99}"},
+    {"type": "put", "key": "product:005", "value": "{\"name\": \"Headphones\", \"price\": 89.99}"},
+    {"type": "put", "key": "inventory:001", "value": "50"},
+    {"type": "put", "key": "inventory:002", "value": "200"},
+    {"type": "put", "key": "inventory:003", "value": "150"},
+    {"type": "put", "key": "inventory:004", "value": "30"},
+    {"type": "put", "key": "inventory:005", "value": "75"}
+  ]
+}

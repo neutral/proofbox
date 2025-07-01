@@ -12,6 +12,28 @@ ProofBox is a Go implementation of the Jellyfish Merkle Tree (JMT), a space-effi
 
 ## Quick Start
 
+### Using the CLI
+
+ProofBox includes a powerful command-line interface (`pb`) for interacting with the Merkle tree:
+
+```bash
+# Install the CLI
+go install github.com/neutral/proofbox/cmd/pb@latest
+
+# Create a database and store data
+pb init --db mydata.db
+pb put "hello" "world" --db mydata.db
+pb get "hello" --db mydata.db
+
+# Generate and verify proofs
+pb prove "hello" --db mydata.db --output proof.json
+pb verify proof.json
+```
+
+See the [CLI documentation](cmd/pb/README.md) for detailed usage instructions, or check out the [Quick Start Guide](cmd/pb/QUICKSTART.md) and [Cheat Sheet](cmd/pb/CHEATSHEET.md).
+
+### Building from Source
+
 ```bash
 # Build the project
 make
@@ -44,7 +66,8 @@ See the [examples directory](examples/) for:
 ## Project Structure
 
 ```
-├── cmd/proofbox/    # CLI application
+├── cmd/
+│   └── pb/          # CLI application
 ├── pkg/             # Public packages
 │   ├── crypto/      # Cryptographic functions
 │   ├── proof/       # Proof generation/verification

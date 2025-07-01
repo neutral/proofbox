@@ -1,0 +1,19 @@
+{
+  "operations": [
+    {
+      "type": "put",
+      "key": "alice",
+      "value": "1000"
+    },
+    {
+      "type": "put",
+      "key": "bob",
+      "value": "2000"
+    },
+    {
+      "type": "put",
+      "key": "charlie",
+      "value": "3000"
+    }
+  ]
+}

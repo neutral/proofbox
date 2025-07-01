@@ -1,0 +1,11 @@
+key,value
+alice,1000
+bob,2000
+charlie,3000
+david,4000
+eve,5000
+counter:users,5
+counter:transactions,1234
+setting:max_users,10000
+setting:timeout,300
+setting:debug,false

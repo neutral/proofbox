@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "export_time": "2024-01-01T00:00:00Z",
+  "root_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "entry_count": 10,
+  "entries": [
+    {
+      "key": "alice",
+      "value": "1000"
+    },
+    {
+      "key": "bob", 
+      "value": "2000"
+    },
+    {
+      "key": "charlie",
+      "value": "3000"
+    },
+    {
+      "key": "user:001",
+      "value": "{\"name\": \"Alice Smith\", \"email\": \"alice@example.com\"}"
+    },
+    {
+      "key": "user:002",
+      "value": "{\"name\": \"Bob Jones\", \"email\": \"bob@example.com\"}"
+    },
+    {
+      "key": "product:001",
+      "value": "{\"name\": \"Laptop\", \"price\": 999.99, \"stock\": 50}"
+    },
+    {
+      "key": "product:002",
+      "value": "{\"name\": \"Mouse\", \"price\": 29.99, \"stock\": 200}"
+    },
+    {
+      "key": "config:version",
+      "value": "1.2.3"
+    },
+    {
+      "key": "config:name",
+      "value": "MyApp"
+    },
+    {
+      "key": "config:settings",
+      "value": "{\"theme\": \"dark\", \"lang\": \"en\"}"
+    }
+  ]
+}

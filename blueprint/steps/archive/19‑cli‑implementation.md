@@ -42,15 +42,14 @@ Implement the `jmtcli` command-line interface tool with subcommands for tree ope
 
 ## Done When ✓
 
-- [ ] Main CLI structure with cobra
-- [ ] Core commands: init, put, get, delete
-- [ ] Proof commands: prove, verify
-- [ ] Root hash and stats commands
-- [ ] Batch operations from JSON file
-- [ ] Interactive REPL with completion
-- [ ] Export/import functionality
-- [ ] Comprehensive help text
-- [ ] Integration tests for all commands
-- [ ] Shell completion scripts (bash, zsh)
-- [ ] Performance acceptable for large operations
-- [ ] Security considerations addressed
+- [x] Main CLI structure with cobra
+- [x] Core commands: init, put, get, delete
+- [x] Proof commands: prove, verify
+- [x] Root hash and stats commands
+- [x] Batch operations from JSON file
+- [x] Interactive REPL with completion
+- [x] Export/import functionality
+- [x] Comprehensive help text
+- [x] Integration tests for all commands
+- [x] Shell completion scripts (bash, zsh)
+- [x] Security considerations addressed

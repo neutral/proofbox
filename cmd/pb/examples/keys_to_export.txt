@@ -1,0 +1,24 @@
+# List of keys to export
+# One key per line
+# Lines starting with # are ignored
+
+alice
+bob
+charlie
+
+# User records
+user:001
+user:002
+user:003
+user:004
+user:005
+
+# Product catalog
+product:001
+product:002
+product:003
+
+# Configuration
+config:version
+config:name
+config:settings
