@@ -1,4 +1,4 @@
-.PHONY: all build test lint fmt clean coverage bench help
+.PHONY: all build test lint fmt clean coverage bench help fuzz fuzz-rapid fuzz-quick
 
 # Default target
 all: fmt test lint
@@ -88,6 +88,21 @@ install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 
+# Run property-based tests with rapid
+fuzz-rapid:
+	@echo "Running property-based tests with rapid..."
+	go test -v ./pkg/fuzz/...
+
+# Run quick property tests for development
+fuzz-quick:
+	@echo "Running quick property tests..."
+	go test -v -short ./pkg/fuzz/...
+
+# Run native Go fuzzing
+fuzz:
+	@echo "Running native Go fuzzing..."
+	go test -fuzz=. -fuzztime=2m ./pkg/fuzz/...
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -103,6 +118,9 @@ help:
 	@echo "  make bench-pkg     - Run only package-level benchmarks"
 	@echo "  make bench-validate - Validate performance targets"
 	@echo "  make bench-report  - Generate performance report"
+	@echo "  make fuzz          - Run native Go fuzzing (2 minutes)"
+	@echo "  make fuzz-rapid    - Run property tests with rapid (1000 checks)"
+	@echo "  make fuzz-quick    - Run quick property tests (100 checks)"
 	@echo "  make lint          - Run linters"
 	@echo "  make fmt           - Format code"
 	@echo "  make clean         - Clean build artifacts"

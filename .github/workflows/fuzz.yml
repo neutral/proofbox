@@ -1,0 +1,186 @@
+name: Fuzzing
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run nightly fuzzing at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      fuzz_time:
+        description: 'Fuzzing duration (e.g., 10m, 1h)'
+        required: false
+        default: '10m'
+
+jobs:
+  fuzz-quick:
+    name: Quick Fuzz Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Run quick property tests
+      run: make fuzz-quick
+      
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-quick-failures
+        path: testdata/rapid/
+        retention-days: 30
+
+  fuzz-comprehensive:
+    name: Comprehensive Fuzzing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Cache fuzz corpus
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build/fuzz
+          testdata/fuzz
+        key: ${{ runner.os }}-fuzz-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-fuzz-
+    
+    - name: Build corpus
+      run: |
+        go run pkg/fuzz/corpus/cmd/build_corpus.go -dir testdata/fuzz/corpus
+    
+    - name: Run property-based tests
+      run: make fuzz-rapid
+      timeout-minutes: 30
+    
+    - name: Run native Go fuzzing
+      run: |
+        FUZZ_TIME="${{ github.event.inputs.fuzz_time || '10m' }}"
+        echo "Running fuzzing for $FUZZ_TIME"
+        go test -fuzz=. -fuzztime=$FUZZ_TIME ./pkg/fuzz/...
+      timeout-minutes: 120
+    
+    - name: Upload fuzz corpus
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-corpus-${{ github.run_number }}
+        path: |
+          testdata/fuzz/
+          ~/.cache/go-build/fuzz/
+        retention-days: 90
+    
+    - name: Upload crash reports
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-crashes-${{ github.run_number }}
+        path: |
+          testdata/fuzz/crashers/
+          testdata/rapid/
+        retention-days: 90
+
+  fuzz-security:
+    name: Security Fuzzing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Run security-focused tests
+      run: |
+        go test -v -run=TestMalicious ./pkg/fuzz/security/...
+        go test -v -run=TestDeepTree ./pkg/fuzz/security/...
+        go test -v -run=TestLargeValue ./pkg/fuzz/security/...
+        go test -v -run=TestVersionManipulation ./pkg/fuzz/security/...
+        go test -v -run=TestProofTampering ./pkg/fuzz/security/...
+      timeout-minutes: 15
+    
+    - name: Check for security issues
+      run: |
+        # Run additional security checks
+        go test -race ./pkg/fuzz/...
+
+  fuzz-performance:
+    name: Performance Regression Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Run performance fuzzing
+      run: |
+        go test -v -run=TestMemoryGrowth ./pkg/fuzz/performance/...
+        go test -v -run=TestOperationLatency ./pkg/fuzz/performance/...
+        go test -v -run=TestScalability ./pkg/fuzz/performance/...
+      timeout-minutes: 20
+    
+    - name: Generate performance report
+      if: always()
+      run: |
+        mkdir -p reports
+        go test -bench=. -benchmem ./pkg/fuzz/... > reports/fuzz-benchmarks.txt
+    
+    - name: Upload performance report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-report-${{ github.run_number }}
+        path: reports/
+        retention-days: 30
+
+  fuzz-differential:
+    name: Differential Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Run differential tests
+      run: |
+        go test -v ./pkg/fuzz/differential/...
+      timeout-minutes: 15
+    
+    - name: Check for inconsistencies
+      if: failure()
+      run: |
+        echo "Differential testing found inconsistencies between implementations"
+        echo "Check the test output for details"

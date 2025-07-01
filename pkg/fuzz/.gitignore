@@ -1,0 +1,27 @@
+# Fuzzing test data and generated files
+
+# Rapid property-based testing
+**/testdata/
+**/*.fail
+
+# Fuzzing corpus (generated data)
+/corpus/cmd/corpus/
+/corpus/testdata/
+
+# Go fuzzing cache
+**/*-fuzz.zip
+
+# Test coverage
+*.out
+*.html
+
+# Benchmark results
+bench/results/
+
+# Temporary test files
+*.tmp
+*.temp
+
+# Note: We do keep the corpus builder code (corpus/*.go) and 
+# the corpus command (corpus/cmd/build_corpus.go) in version control,
+# but not the generated corpus data itself
