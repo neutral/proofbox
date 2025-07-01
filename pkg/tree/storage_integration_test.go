@@ -18,7 +18,7 @@ func TestStorageIntegration(t *testing.T) {
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	// Create tree
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	if err != nil {
 		t.Fatalf("Failed to create tree: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestBatchWithStorage(t *testing.T) {
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
 	// Create tree
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	if err != nil {
 		t.Fatalf("Failed to create tree: %v", err)
 	}

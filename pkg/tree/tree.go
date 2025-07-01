@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/neutral/proofbox/pkg/codec"
+	"github.com/neutral/proofbox/pkg/metrics"
 	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 )
@@ -35,15 +36,22 @@ type Tree struct {
 
 	// Version manager
 	versionManager *VersionManager // Manages version lifecycle
+
+	// Metrics
+	metrics metrics.JMTMetrics // Metrics collector
+	
+	// Statistics
+	stats *TreeStats // Atomic tree statistics
 }
 
 // TreeConfig holds configuration options
 type TreeConfig struct {
-	CacheSize           int             // Number of nodes to cache (default: 10000)
-	MaxBatchSize        int             // Maximum operations per batch (default: 1000)
-	MetricsEnabled      bool            // Enable metrics collection
-	BatchOptimizer      *BatchOptimizer // Batch optimization settings
-	UseParallelBatching bool            // Use parallel batch processing for large batches
+	CacheSize           int                  // Number of nodes to cache (default: 10000)
+	MaxBatchSize        int                  // Maximum operations per batch (default: 1000)
+	MetricsEnabled      bool                 // Enable metrics collection
+	BatchOptimizer      *BatchOptimizer      // Batch optimization settings
+	UseParallelBatching bool                 // Use parallel batch processing for large batches
+	Metrics             metrics.JMTMetrics   // Custom metrics implementation (optional)
 }
 
 // DefaultTreeConfig returns default configuration
@@ -66,17 +74,21 @@ func (t *Tree) loadNodeFromStorage(key types.NodeKey) (types.Node, error) {
 
 	// Load from storage
 	storageKey := t.keyEncoder.NodeKey(key)
+	t.metrics.RecordDBRead()
 	data, err := t.db.Get(storageKey)
 	if err != nil {
+		t.metrics.RecordError("storage")
 		return nil, fmt.Errorf("failed to load node: %w", err)
 	}
 	if data == nil {
+		t.metrics.RecordError("storage")
 		return nil, fmt.Errorf("node not found")
 	}
 
 	// Decode node
 	node, err := codec.DecodeNode(data, key.Version)
 	if err != nil {
+		t.metrics.RecordError("codec")
 		return nil, fmt.Errorf("failed to decode node: %w", err)
 	}
 
@@ -95,12 +107,27 @@ func NewTree(db storage.Storage, keyEncoder storage.KeyEncoder, config TreeConfi
 		keyEncoder = storage.NewDefaultKeyEncoder()
 	}
 
+	// Initialize metrics
+	var metricsCollector metrics.JMTMetrics
+	if config.Metrics != nil {
+		// Use provided metrics implementation
+		metricsCollector = config.Metrics
+	} else if config.MetricsEnabled {
+		// Create Prometheus metrics only if explicitly enabled
+		metricsCollector = metrics.NewPrometheusMetrics()
+	} else {
+		// Default to no-op metrics
+		metricsCollector = metrics.NoOpMetrics{}
+	}
+
 	tree := &Tree{
 		db:             db,
 		keyEncoder:     keyEncoder,
 		rootHashes:     make(map[types.Version]types.Hash),
 		config:         config,
 		versionManager: NewVersionManager(),
+		metrics:        metricsCollector,
+		stats:          NewTreeStats(),
 	}
 
 	// Initialize node cache
@@ -156,6 +183,7 @@ func (t *Tree) GetRootHash(version types.Version) (types.Hash, error) {
 
 	hash, exists := t.rootHashes[version]
 	if !exists {
+		t.metrics.RecordError("version")
 		return types.Hash{}, types.ErrVersionNotFound
 	}
 
@@ -257,12 +285,15 @@ func (t *Tree) BeginVersion() (types.Version, error) {
 func (t *Tree) PutVersioned(version types.Version, key types.Key, value []byte) error {
 	// Validate inputs
 	if err := t.validateVersion(version); err != nil {
+		t.metrics.RecordError("validation")
 		return fmt.Errorf("invalid version: %w", err)
 	}
 	if err := t.validateKey(key); err != nil {
+		t.metrics.RecordError("validation")
 		return fmt.Errorf("invalid key: %w", err)
 	}
 	if err := t.validateValue(value); err != nil {
+		t.metrics.RecordError("validation")
 		return fmt.Errorf("invalid value: %w", err)
 	}
 
@@ -272,6 +303,7 @@ func (t *Tree) PutVersioned(version types.Version, key types.Key, value []byte) 
 	// Get pending version
 	pending := t.versionManager.GetPending(version)
 	if pending == nil {
+		t.metrics.RecordError("version")
 		return fmt.Errorf("version %d not pending", version)
 	}
 
@@ -312,6 +344,7 @@ func (t *Tree) DeleteVersioned(version types.Version, key types.Key) error {
 	// Get pending version
 	pending := t.versionManager.GetPending(version)
 	if pending == nil {
+		t.metrics.RecordError("version")
 		return fmt.Errorf("version %d not pending", version)
 	}
 
@@ -357,11 +390,15 @@ func (t *Tree) GetAtVersion(version types.Version, key types.Key) ([]byte, error
 
 // CommitVersion finalizes all changes in a version
 func (t *Tree) CommitVersion(version types.Version) error {
+	// Start timing for metrics
+	start := time.Now()
+	
 	t.writeMu.Lock()
 	defer t.writeMu.Unlock()
 
 	pending := t.versionManager.GetPending(version)
 	if pending == nil {
+		t.metrics.RecordError("version")
 		return fmt.Errorf("version %d not pending", version)
 	}
 
@@ -386,7 +423,13 @@ func (t *Tree) CommitVersion(version types.Version) error {
 		t.mu.Unlock()
 
 		// Update version manager
-		return t.versionManager.Commit(version, rootHash, 0)
+		err := t.versionManager.Commit(version, rootHash, 0)
+		
+		// Record metrics for empty commit
+		duration := time.Since(start).Seconds()
+		t.metrics.RecordCommit(duration, 0)
+		
+		return err
 	}
 
 	// Build update batch
@@ -417,31 +460,42 @@ func (t *Tree) CommitVersion(version types.Version) error {
 	nodeCodec := &codec.NodeCodec{}
 
 	// Write all new nodes
+	dbWrites := 0
 	for _, nodeWrite := range batch.NewNodes {
 		data, err := nodeCodec.EncodeNode(nodeWrite.Node)
 		if err != nil {
+			t.metrics.RecordError("codec")
 			return fmt.Errorf("failed to encode node: %w", err)
 		}
 
 		storageKey := t.keyEncoder.NodeKey(nodeWrite.Key)
 		if err := writeBatch.Put(storageKey, data); err != nil {
+			t.metrics.RecordError("storage")
 			return fmt.Errorf("failed to write node: %w", err)
 		}
+		dbWrites++
+		t.metrics.RecordDBWrite()
 
 		// If it's a leaf node, also store the value
 		if leaf, ok := nodeWrite.Node.(*LeafNode); ok && leaf.Value() != nil {
 			valueKey := t.keyEncoder.ValueKey(leaf.ValueHash())
 			if err := writeBatch.Put(valueKey, leaf.Value()); err != nil {
+				t.metrics.RecordError("storage")
 				return fmt.Errorf("failed to write value: %w", err)
 			}
+			dbWrites++
+			t.metrics.RecordDBWrite()
 		}
 	}
 
 	// Write root hash
 	rootKey := t.keyEncoder.RootKey(version)
 	if err := writeBatch.Put(rootKey, batch.NewRootHash[:]); err != nil {
+		t.metrics.RecordError("storage")
 		return fmt.Errorf("failed to write root: %w", err)
 	}
+	dbWrites++
+	t.metrics.RecordDBWrite()
 
 	// Prepare in-memory state updates (but don't apply yet)
 	t.mu.RLock()
@@ -461,6 +515,7 @@ func (t *Tree) CommitVersion(version types.Version) error {
 
 	// Commit to storage
 	if err := writeBatch.Commit(storage.CommitOptions{Sync: true}); err != nil {
+		t.metrics.RecordError("storage")
 		return fmt.Errorf("storage commit failed: %w", err)
 	}
 
@@ -479,12 +534,29 @@ func (t *Tree) CommitVersion(version types.Version) error {
 		panic(fmt.Sprintf("version manager commit failed after storage commit: %v", err))
 	}
 
+	// Record commit metrics
+	duration := time.Since(start).Seconds()
+	t.metrics.RecordCommit(duration, len(batch.NewNodes))
+	
+	// Update tree statistics atomically
+	t.stats.UpdateNodeCount(nodeCount)
+	t.stats.UpdateVersion(int64(version))
+	
+	// Update metrics from atomic stats
+	t.metrics.UpdateTreeNodeCount(int(t.stats.GetNodeCount()))
+	t.metrics.UpdateVersionCount(int(t.stats.GetVersion()))
+
 	return nil
 }
 
 // AbortVersion cancels a pending version
 func (t *Tree) AbortVersion(version types.Version) error {
 	return t.versionManager.Abort(version)
+}
+
+// GetStats returns a snapshot of tree statistics
+func (t *Tree) GetStats() (height, nodeCount, version int64) {
+	return t.stats.GetHeight(), t.stats.GetNodeCount(), t.stats.GetVersion()
 }
 
 // CollectVersionGarbage removes old versions based on retention policy

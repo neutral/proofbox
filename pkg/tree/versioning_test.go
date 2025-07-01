@@ -25,7 +25,7 @@ func TestBasicVersioning(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create version 1
@@ -87,7 +87,7 @@ func TestVersionAbort(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Start version but abort
@@ -125,7 +125,7 @@ func TestStructuralSharing(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create version 1 with multiple keys
@@ -188,7 +188,7 @@ func TestDeleteInVersion(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Version 1: Insert keys
@@ -249,7 +249,7 @@ func TestProofAcrossVersions(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Version 1
@@ -304,7 +304,7 @@ func BenchmarkStructuralSharing(b *testing.B) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(b, err)
 
 	// Create initial version with many keys

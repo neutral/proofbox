@@ -2,6 +2,7 @@ package proof
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
@@ -30,8 +31,12 @@ func Generate(reader tree.TreeReaderInterface, key types.Key) (*Proof, error) {
 
 // Generate creates a proof for the given key
 func (g *Generator) Generate(key types.Key) (*Proof, error) {
+	start := time.Now()
+	metrics := g.reader.Metrics()
+	
 	// Validate key
 	if err := types.ValidateKey(key); err != nil {
+		metrics.RecordError("validation")
 		return nil, err
 	}
 
@@ -48,6 +53,12 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 	// Handle empty tree
 	if rootHash == types.EmptyHash() {
 		proof.Type = ProofTypeExclusionEmpty
+		
+		// Record metrics for empty tree proof
+		duration := time.Since(start).Seconds()
+		proofSize := proof.EstimateSize()
+		metrics.RecordProofGeneration(duration, "exclusion", proofSize)
+		
 		return proof, nil
 	}
 	
@@ -61,6 +72,7 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 	for depth := 0; depth < types.MaxTreeDepth; depth++ {
 		node, err := g.reader.GetNode(nodeKey)
 		if err != nil {
+			metrics.RecordError("storage")
 			return nil, fmt.Errorf("failed to load node at depth %d: %w", depth, err)
 		}
 		if node == nil {
@@ -76,9 +88,16 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 				// Load the actual value using the value hash
 				value, err := g.reader.LoadValue(n.ValueHash())
 				if err != nil {
+					metrics.RecordError("storage")
 					return nil, fmt.Errorf("failed to load value: %w", err)
 				}
 				proof.Value = value
+				
+				// Record metrics for inclusion proof
+				duration := time.Since(start).Seconds()
+				proofSize := proof.EstimateSize()
+				metrics.RecordProofGeneration(duration, "inclusion", proofSize)
+				
 				return proof, nil
 			} else {
 				// Neighbor exclusion proof
@@ -89,6 +108,12 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					Path:         pathTaken,
 					DivergeDepth: depth,
 				}
+				
+				// Record metrics for exclusion proof
+				duration := time.Since(start).Seconds()
+				proofSize := proof.EstimateSize()
+				metrics.RecordProofGeneration(duration, "exclusion", proofSize)
+				
 				return proof, nil
 			}
 			
@@ -117,6 +142,12 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 			if !exists {
 				// Empty exclusion proof
 				proof.Type = ProofTypeExclusionEmpty
+				
+				// Record metrics for exclusion proof
+				duration := time.Since(start).Seconds()
+				proofSize := proof.EstimateSize()
+				metrics.RecordProofGeneration(duration, "exclusion", proofSize)
+				
 				return proof, nil
 			}
 			
@@ -138,6 +169,7 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 	// This handles the edge case where keys differ only in the last nibble
 	node, err := g.reader.GetNode(nodeKey)
 	if err != nil {
+		metrics.RecordError("storage")
 		return nil, fmt.Errorf("failed to load node at depth 64: %w", err)
 	}
 	
@@ -148,9 +180,16 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 				proof.Type = ProofTypeInclusion
 				value, err := g.reader.LoadValue(leaf.ValueHash())
 				if err != nil {
+					metrics.RecordError("storage")
 					return nil, fmt.Errorf("failed to load value: %w", err)
 				}
 				proof.Value = value
+				
+				// Record metrics for inclusion proof
+				duration := time.Since(start).Seconds()
+				proofSize := proof.EstimateSize()
+				metrics.RecordProofGeneration(duration, "inclusion", proofSize)
+				
 				return proof, nil
 			} else {
 				// Neighbor exclusion at maximum depth
@@ -161,12 +200,19 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					Path:         pathTaken,
 					DivergeDepth: types.MaxTreeDepth,
 				}
+				
+				// Record metrics for exclusion proof
+				duration := time.Since(start).Seconds()
+				proofSize := proof.EstimateSize()
+				metrics.RecordProofGeneration(duration, "exclusion", proofSize)
+				
 				return proof, nil
 			}
 		}
 	}
 	
 	// If we get here, something is wrong
+	metrics.RecordError("tree_structure")
 	return nil, fmt.Errorf("proof generation failed: unexpected tree structure")
 }
 

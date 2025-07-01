@@ -27,7 +27,7 @@ func TestVersionPersistence(t *testing.T) {
 		require.NoError(t, err)
 		keyEncoder1 := storage.NewDefaultKeyEncoder()
 
-		tree1, err := NewTree(store1, keyEncoder1, DefaultTreeConfig())
+		tree1, err := NewTree(store1, keyEncoder1, testTreeConfig())
 		require.NoError(t, err)
 
 		// Create multiple versions
@@ -49,7 +49,7 @@ func TestVersionPersistence(t *testing.T) {
 		defer store2.Close()
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		// Verify latest version
@@ -81,7 +81,7 @@ func TestVersionPersistence(t *testing.T) {
 		require.NoError(t, err)
 		keyEncoder1 := storage.NewDefaultKeyEncoder()
 
-		tree1, err := NewTree(store1, keyEncoder1, DefaultTreeConfig())
+		tree1, err := NewTree(store1, keyEncoder1, testTreeConfig())
 		require.NoError(t, err)
 
 		// Create committed version
@@ -106,7 +106,7 @@ func TestVersionPersistence(t *testing.T) {
 		defer store2.Close()
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		// Committed version should be accessible
@@ -140,7 +140,7 @@ func TestVersionPersistence(t *testing.T) {
 		require.NoError(t, err)
 		keyEncoder1 := storage.NewDefaultKeyEncoder()
 
-		tree1, err := NewTree(store1, keyEncoder1, DefaultTreeConfig())
+		tree1, err := NewTree(store1, keyEncoder1, testTreeConfig())
 		require.NoError(t, err)
 
 		// Set custom retention policy
@@ -166,7 +166,7 @@ func TestVersionPersistence(t *testing.T) {
 		defer store2.Close()
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		// Latest version should match
@@ -199,7 +199,7 @@ func TestCrashRecovery(t *testing.T) {
 		require.NoError(t, err)
 		keyEncoder := storage.NewDefaultKeyEncoder()
 
-		tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+		tree, err := NewTree(store, keyEncoder, testTreeConfig())
 		require.NoError(t, err)
 
 		// Create initial version
@@ -246,7 +246,7 @@ func TestCrashRecovery(t *testing.T) {
 		defer store2.Close()
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
 
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		// Version 2 should not exist (no root hash written)

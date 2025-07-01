@@ -17,7 +17,7 @@ func TestBatchTransaction(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("Basic Batch Operations", func(t *testing.T) {
@@ -232,7 +232,7 @@ func TestParallelBatchProcessing(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	config := DefaultTreeConfig()
+	config := testTreeConfig()
 	config.UseParallelBatching = true
 
 	tree, err := NewTree(store, keyEncoder, config)
@@ -269,7 +269,7 @@ func TestBatchValidation(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("Valid Batch", func(t *testing.T) {
@@ -340,7 +340,7 @@ func BenchmarkBatchOperations(b *testing.B) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(b, err)
 
 	b.Run("Sequential Batch", func(b *testing.B) {
@@ -357,7 +357,7 @@ func BenchmarkBatchOperations(b *testing.B) {
 	})
 
 	b.Run("Parallel Batch", func(b *testing.B) {
-		config := DefaultTreeConfig()
+		config := testTreeConfig()
 		config.UseParallelBatching = true
 
 		tree2, err := NewTree(store, keyEncoder, config)
@@ -376,7 +376,7 @@ func BenchmarkBatchOperations(b *testing.B) {
 	})
 
 	b.Run("Batch with Optimization", func(b *testing.B) {
-		config := DefaultTreeConfig()
+		config := testTreeConfig()
 		config.BatchOptimizer = NewBatchOptimizer(BatchOptimizerConfig{
 			EnableCompression:   true,
 			EnableDeduplication: true,

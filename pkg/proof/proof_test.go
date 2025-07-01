@@ -18,7 +18,9 @@ func createTestTree(t testing.TB) *tree.Tree {
 	t.Cleanup(func() { store.Close() })
 	
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := tree.NewTree(store, keyEncoder, tree.DefaultTreeConfig())
+	config := tree.DefaultTreeConfig()
+	config.MetricsEnabled = false
+	tree, err := tree.NewTree(store, keyEncoder, config)
 	require.NoError(t, err)
 	return tree
 }

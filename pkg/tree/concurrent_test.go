@@ -27,7 +27,7 @@ func TestConcurrentVersionCreation(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create multiple versions concurrently
@@ -112,7 +112,7 @@ func TestConcurrentReadsWhileWriting(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Insert initial data
@@ -195,7 +195,7 @@ func TestVersionGarbageCollectionConcurrency(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Set retention policy to keep only 10 versions
@@ -271,7 +271,7 @@ func TestConcurrentAborts(t *testing.T) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create multiple versions and randomly abort some

@@ -150,6 +150,13 @@ func (bt *BatchTransaction) Execute() (types.Version, error) {
 		return 0, fmt.Errorf("no operations in batch")
 	}
 
+	// Count operation types for metrics
+	opCounts := map[string]int{
+		"insert": 0,
+		"update": 0,
+		"delete": 0,
+	}
+
 	// Begin a new version
 	version, err := bt.tree.BeginVersion()
 	if err != nil {
@@ -160,15 +167,22 @@ func (bt *BatchTransaction) Execute() (types.Version, error) {
 	for i, op := range operations {
 		switch op.Type {
 		case BatchOpPut:
+			// For now, treat all puts as inserts
+			// TODO: Track insert vs update during tree update operation
+			opCounts["insert"]++
+			
 			if err := bt.tree.PutVersioned(version, op.Key, op.Value); err != nil {
 				// Abort on error
 				bt.tree.AbortVersion(version)
+				bt.tree.metrics.RecordError("batch")
 				return 0, fmt.Errorf("operation %d (put) failed: %w", i, err)
 			}
 		case BatchOpDelete:
+			opCounts["delete"]++
 			if err := bt.tree.DeleteVersioned(version, op.Key); err != nil {
 				// Abort on error
 				bt.tree.AbortVersion(version)
+				bt.tree.metrics.RecordError("batch")
 				return 0, fmt.Errorf("operation %d (delete) failed: %w", i, err)
 			}
 		default:
@@ -181,7 +195,15 @@ func (bt *BatchTransaction) Execute() (types.Version, error) {
 	if err := bt.tree.CommitVersion(version); err != nil {
 		// Abort on error
 		bt.tree.AbortVersion(version)
+		bt.tree.metrics.RecordError("batch")
 		return 0, fmt.Errorf("failed to commit batch: %w", err)
+	}
+
+	// Record operation metrics after successful commit
+	for opType, count := range opCounts {
+		for i := 0; i < count; i++ {
+			bt.tree.metrics.RecordOperation(opType)
+		}
 	}
 
 	// Clear the batch after successful execution

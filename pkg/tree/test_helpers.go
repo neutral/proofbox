@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/neutral/proofbox/pkg/metrics"
 	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/storage/memory"
 	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
@@ -16,7 +17,13 @@ func CreateTestTree(t *testing.T) *Tree {
 	
 	store := memory.NewStorage()
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	
+	// Use test configuration with metrics disabled
+	config := DefaultTreeConfig()
+	config.MetricsEnabled = false
+	config.Metrics = metrics.NoOpMetrics{}
+	
+	tree, err := NewTree(store, keyEncoder, config)
 	if err != nil {
 		t.Fatalf("Failed to create test tree: %v", err)
 	}

@@ -14,7 +14,7 @@ import (
 func TestValueRetrieval(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tr, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tr, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Test data
@@ -40,7 +40,7 @@ func TestValueRetrieval(t *testing.T) {
 func TestBatchValueRetrieval(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tr, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tr, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create batch
@@ -79,7 +79,7 @@ func TestBatchValueRetrieval(t *testing.T) {
 func TestDirectStorageAccess(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tr, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tr, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Test multiple keys to ensure we're testing real storage

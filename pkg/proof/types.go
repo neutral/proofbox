@@ -98,6 +98,42 @@ func (p *Proof) IsValid() error {
 	return nil
 }
 
+// EstimateSize estimates the serialized size of the proof in bytes
+func (p *Proof) EstimateSize() int {
+	size := 0
+	
+	// Fixed size fields
+	size += 1   // ProofType
+	size += 32  // Key (256-bit key)
+	size += 32  // RootHash 
+	size += 8   // Version
+	
+	// Value (for inclusion proofs)
+	if p.Value != nil {
+		size += 4 + len(p.Value) // Length prefix + data
+	}
+	
+	// Neighbor data (for exclusion proofs)
+	if p.NeighborLeaf != nil {
+		size += 32               // Key
+		size += 32               // ValueHash
+		size += 4                // DivergeDepth
+		size += 4 + len(p.NeighborLeaf.Path) // Path length + data
+	}
+	
+	// Siblings data
+	size += 4 // Number of siblings
+	for _, sib := range p.Siblings {
+		size += 4               // Depth
+		size += 1               // Nibble
+		size += 32              // Hash
+		size += 4               // Number of children
+		size += len(sib.Children) * (1 + 32) // Each child: nibble + hash
+	}
+	
+	return size
+}
+
 // ProofBatch represents multiple proofs that can be optimized together
 type ProofBatch struct {
 	Proofs []*Proof

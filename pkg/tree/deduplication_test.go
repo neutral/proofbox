@@ -19,7 +19,7 @@ func TestCrossVersionDeduplication(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("test-key"))
@@ -60,7 +60,7 @@ func TestDifferentValuesNotDeduplicated(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("test-key"))

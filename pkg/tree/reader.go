@@ -3,8 +3,10 @@ package tree
 import (
 	"crypto/sha256"
 	"fmt"
+	"time"
 
 	"github.com/neutral/proofbox/pkg/codec"
+	"github.com/neutral/proofbox/pkg/metrics"
 	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/types"
 )
@@ -19,11 +21,15 @@ type TreeReader struct {
 
 // Get retrieves a value by key at the specified version
 func (t *Tree) Get(version types.Version, key types.Key) ([]byte, error) {
+	start := time.Now()
+	
 	// Validate inputs
 	if err := t.validateVersion(version); err != nil {
+		t.metrics.RecordError("validation")
 		return nil, err
 	}
 	if err := t.validateKey(key); err != nil {
+		t.metrics.RecordError("validation")
 		return nil, err
 	}
 
@@ -33,11 +39,14 @@ func (t *Tree) Get(version types.Version, key types.Key) ([]byte, error) {
 	t.mu.RUnlock()
 
 	if !exists {
+		t.metrics.RecordError("version")
 		return nil, types.ErrVersionNotFound
 	}
 
 	// Empty tree case
 	if rootHash == types.EmptyHash() {
+		duration := time.Since(start).Seconds()
+		t.metrics.RecordLookup(duration, false)
 		return nil, nil // Key not found in empty tree
 	}
 
@@ -53,7 +62,18 @@ func (t *Tree) Get(version types.Version, key types.Key) ([]byte, error) {
 		rootHash: rootHash,
 	}
 
-	return reader.Get(key)
+	value, err := reader.Get(key)
+	
+	// Record metrics
+	duration := time.Since(start).Seconds()
+	found := (err == nil && value != nil)
+	t.metrics.RecordLookup(duration, found)
+	
+	if err != nil {
+		t.metrics.RecordError("storage")
+	}
+
+	return value, err
 }
 
 // Get retrieves a value by traversing the tree
@@ -143,8 +163,10 @@ func (r *TreeReader) loadNode(key types.NodeKey) (types.Node, error) {
 
 	// Load from storage
 	storageKey := r.tree.keyEncoder.NodeKey(key)
+	r.tree.metrics.RecordDBRead()
 	data, err := r.snapshot.Get(storageKey)
 	if err != nil {
+		r.tree.metrics.RecordError("storage")
 		return nil, fmt.Errorf("failed to load node: %w", err)
 	}
 	if data == nil {
@@ -166,8 +188,10 @@ func (r *TreeReader) loadNode(key types.NodeKey) (types.Node, error) {
 // loadValue loads a value by its hash
 func (r *TreeReader) loadValue(hash types.Hash) ([]byte, error) {
 	valueKey := r.tree.keyEncoder.ValueKey(hash)
+	r.tree.metrics.RecordDBRead()
 	data, err := r.snapshot.Get(valueKey)
 	if err != nil {
+		r.tree.metrics.RecordError("storage")
 		return nil, fmt.Errorf("failed to load value: %w", err)
 	}
 
@@ -229,6 +253,11 @@ func (r *TreeReader) RootHash() types.Hash {
 // Version implements TreeReaderInterface
 func (r *TreeReader) Version() types.Version {
 	return r.version
+}
+
+// Metrics implements TreeReaderInterface
+func (r *TreeReader) Metrics() metrics.JMTMetrics {
+	return r.tree.metrics
 }
 
 // Close releases the snapshot

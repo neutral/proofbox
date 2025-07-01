@@ -13,7 +13,7 @@ import (
 func TestVersionChildNodeBug(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create keys that will share internal nodes (same prefix)
@@ -84,7 +84,7 @@ func TestVersionChildNodeBug(t *testing.T) {
 func TestComplexVersionBoundaries(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Create a series of versions with overlapping key sets

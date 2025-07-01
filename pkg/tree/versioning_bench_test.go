@@ -24,7 +24,7 @@ func BenchmarkVersionCreation(b *testing.B) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(b, err)
 
 	// Pre-populate with some data
@@ -71,7 +71,7 @@ func BenchmarkStructuralSharingOverhead(b *testing.B) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(b, err)
 
 	// Create a tree with many nodes
@@ -111,7 +111,7 @@ func BenchmarkVersionedGet(b *testing.B) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(b, err)
 
 	// Create multiple versions
@@ -150,7 +150,7 @@ func BenchmarkGarbageCollection(b *testing.B) {
 	defer store.Close()
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(b, err)
 
 	// Set retention policy
@@ -211,7 +211,7 @@ func BenchmarkMemoryUsageWithVersions(b *testing.B) {
 
 			keyEncoder := storage.NewDefaultKeyEncoder()
 
-			tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+			tree, err := NewTree(store, keyEncoder, testTreeConfig())
 			require.NoError(b, err)
 
 			tree.SetVersionRetentionPolicy(scenario.retention, scenario.keep, 0)

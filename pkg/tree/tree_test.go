@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neutral/proofbox/pkg/metrics"
 	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/storage/memory"
@@ -42,6 +43,14 @@ func createPersistentTestStorage(t *testing.T) (storage.Storage, string) {
 	return store, tmpDir
 }
 
+// testTreeConfig returns a TreeConfig suitable for testing with metrics disabled
+func testTreeConfig() TreeConfig {
+	config := DefaultTreeConfig()
+	config.MetricsEnabled = false
+	config.Metrics = metrics.NoOpMetrics{}
+	return config
+}
+
 func TestEmptyTreeGet(t *testing.T) {
 	// Create in-memory storage
 	store := createTestStorage(t)
@@ -52,7 +61,7 @@ func TestEmptyTreeGet(t *testing.T) {
 	require.NoError(t, store.Put(rootKey, types.EmptyHash().Bytes()))
 
 	// Create tree
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err, "Failed to create tree")
 
 	// Get from empty tree (version 0)
@@ -67,7 +76,7 @@ func TestVersionNotFound(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Try to get from non-existent version
@@ -89,7 +98,7 @@ func TestTreeInitialization(t *testing.T) {
 	batch.Close()
 
 	// Create tree - should load existing versions
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err, "Failed to create tree")
 
 	// Check latest version
@@ -122,7 +131,7 @@ func TestIsEmpty(t *testing.T) {
 	require.NoError(t, batch.Commit(storage.CommitOptions{Sync: true}))
 	batch.Close()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Check empty tree
@@ -210,7 +219,7 @@ func TestErrorHandlers(t *testing.T) {
 func TestValidation(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("ValidateVersion", func(t *testing.T) {
@@ -248,7 +257,7 @@ func TestHealthChecker(t *testing.T) {
 	require.NoError(t, batch.Commit(storage.CommitOptions{Sync: true}))
 	batch.Close()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	checker := NewTreeHealthChecker(tree)

@@ -1,6 +1,9 @@
 package tree
 
-import "github.com/neutral/proofbox/pkg/types"
+import (
+	"github.com/neutral/proofbox/pkg/metrics"
+	"github.com/neutral/proofbox/pkg/types"
+)
 
 // TreeReaderInterface provides read-only access to tree nodes for proof generation
 type TreeReaderInterface interface {
@@ -18,6 +21,9 @@ type TreeReaderInterface interface {
 
 	// Close releases any resources held by the reader
 	Close() error
+
+	// Metrics returns the metrics collector for this reader
+	Metrics() metrics.JMTMetrics
 }
 
 // Ensure TreeReader implements TreeReaderInterface

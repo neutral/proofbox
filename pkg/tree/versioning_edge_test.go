@@ -14,7 +14,7 @@ import (
 func TestVersionValidation(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Test 1: Operations on non-existent version
@@ -114,7 +114,7 @@ func TestVersionValidation(t *testing.T) {
 func TestBatchOperationsInVersion(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("MultiplePutsInVersion", func(t *testing.T) {
@@ -269,7 +269,7 @@ func TestBatchOperationsInVersion(t *testing.T) {
 func TestEmptyTreeVersioning(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("VersioningEmptyTree", func(t *testing.T) {
@@ -325,7 +325,7 @@ func TestEmptyTreeVersioning(t *testing.T) {
 func TestDeepTreeVersioning(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("MaxDepthTree", func(t *testing.T) {

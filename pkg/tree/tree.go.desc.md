@@ -82,6 +82,30 @@ The tree now includes comprehensive multi-version support:
 - `CollectVersionGarbage()`: Remove old versions based on retention policy
 - `SetVersionRetentionPolicy()`: Configure how versions are retained
 
+## Metrics Integration
+
+The tree package includes comprehensive metrics collection:
+
+### Metrics Collected
+- **Operations**: Tracks inserts, deletes, lookups (with hit/miss)
+- **Performance**: Commit latency, lookup latency, batch sizes
+- **State**: Node count, version count, tree statistics
+- **Errors**: Categorized by type (storage, validation, version, etc.)
+- **Storage**: Database read/write operations
+
+### Key Features
+- **Zero Overhead**: NoOp implementation when disabled
+- **Thread Safety**: Atomic statistics updates via TreeStats
+- **Pluggable**: Interface-based design supports custom implementations
+- **Test Friendly**: Disabled by default in tests to avoid conflicts
+
+### Configuration
+```go
+config := tree.DefaultTreeConfig()
+config.MetricsEnabled = true
+config.Metrics = metricsCollector // or nil for default Prometheus
+```
+
 ## Current Status
 
 - Full CRUD operations implemented with versioning
@@ -89,3 +113,4 @@ The tree now includes comprehensive multi-version support:
 - Atomic batch commits to storage
 - Proof generation and verification (step 13)
 - Multi-version state management (step 14)
+- Comprehensive metrics collection (step 18)

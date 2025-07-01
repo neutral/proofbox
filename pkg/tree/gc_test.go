@@ -15,7 +15,7 @@ import (
 func TestGCWithPendingVersions(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Set aggressive GC policy
@@ -60,7 +60,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 		// Create fresh tree
 		store2 := createTestStorage(t)
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		tree2.SetVersionRetentionPolicy(RetentionPolicyCount, 1, 0) // Keep only 1 version
@@ -102,7 +102,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 	t.Run("GCWithAbortedVersions", func(t *testing.T) {
 		store3 := createTestStorage(t)
 		keyEncoder3 := storage.NewDefaultKeyEncoder()
-		tree3, err := NewTree(store3, keyEncoder3, DefaultTreeConfig())
+		tree3, err := NewTree(store3, keyEncoder3, testTreeConfig())
 		require.NoError(t, err)
 
 		tree3.SetVersionRetentionPolicy(RetentionPolicyCount, 2, 0)
@@ -141,7 +141,7 @@ func TestGCWithPendingVersions(t *testing.T) {
 func TestTimeBasedGC(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	t.Run("RemoveOldVersions", func(t *testing.T) {
@@ -185,7 +185,7 @@ func TestTimeBasedGC(t *testing.T) {
 	t.Run("MinVersionsRespected", func(t *testing.T) {
 		store2 := createTestStorage(t)
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		// Set time-based retention with min versions
@@ -216,7 +216,7 @@ func TestTimeBasedGC(t *testing.T) {
 func TestGCMemoryReclamation(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Set aggressive GC
@@ -253,7 +253,7 @@ func TestGCMemoryReclamation(t *testing.T) {
 		// Create fresh tree
 		store2 := createTestStorage(t)
 		keyEncoder2 := storage.NewDefaultKeyEncoder()
-		tree2, err := NewTree(store2, keyEncoder2, DefaultTreeConfig())
+		tree2, err := NewTree(store2, keyEncoder2, testTreeConfig())
 		require.NoError(t, err)
 
 		tree2.SetVersionRetentionPolicy(RetentionPolicyCount, 5, 0)
@@ -290,7 +290,7 @@ func TestGCMemoryReclamation(t *testing.T) {
 func TestGCConcurrentOperations(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	tree.SetVersionRetentionPolicy(RetentionPolicyCount, 20, 0)

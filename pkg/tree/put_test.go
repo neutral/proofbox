@@ -15,7 +15,7 @@ func TestPut_InsertIntoEmptyTree(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Insert into empty tree
@@ -49,7 +49,7 @@ func TestPut_UpdateExistingKey(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("update-key"))
@@ -93,7 +93,7 @@ func TestPut_Persistence(t *testing.T) {
 
 	// Insert with first tree instance
 	{
-		tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+		tree, err := NewTree(store, keyEncoder, testTreeConfig())
 		require.NoError(t, err)
 
 		v, err := tree.Put(key, value)
@@ -102,7 +102,7 @@ func TestPut_Persistence(t *testing.T) {
 	}
 
 	// Create new tree instance
-	tree2, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree2, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Should load latest version
@@ -123,7 +123,7 @@ func TestPut_ValueSizeLimit(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("large-key"))
@@ -148,7 +148,7 @@ func TestPut_InvalidInputs(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -178,7 +178,7 @@ func TestPut_ConcurrentWrites(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Run concurrent puts
@@ -219,7 +219,7 @@ func TestPut_DifferentKeySuccess(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Insert first key
@@ -249,7 +249,7 @@ func TestPut_MultipleUpdates(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	key := types.KeyHash([]byte("multi-update-key"))
@@ -280,7 +280,7 @@ func TestPut_LargeValues(t *testing.T) {
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
 
-	tree, err := NewTree(store, keyEncoder, DefaultTreeConfig())
+	tree, err := NewTree(store, keyEncoder, testTreeConfig())
 	require.NoError(t, err)
 
 	// Test with various sizes - using same key for all (no leaf splitting in step 09)
