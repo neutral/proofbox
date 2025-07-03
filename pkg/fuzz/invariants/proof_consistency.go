@@ -34,6 +34,9 @@ func CheckProofConsistency(t *tree.Tree, ops []generators.Operation) error {
 	versionKeys := make(map[types.Version]map[string][]byte)
 	versionKeys[0] = make(map[string][]byte)
 
+	// Track the current version as operations may fail
+	currentVersion := types.Version(0)
+
 	for i, op := range ops {
 		switch op.Type {
 		case generators.OpPut:
@@ -44,13 +47,15 @@ func CheckProofConsistency(t *tree.Tree, ops []generators.Operation) error {
 
 			// Copy previous version's keys
 			versionKeys[newVersion] = make(map[string][]byte)
-			prevVersion := newVersion - 1
-			if prevKeys, exists := versionKeys[prevVersion]; exists {
+			if prevKeys, exists := versionKeys[currentVersion]; exists {
 				for k, v := range prevKeys {
 					versionKeys[newVersion][k] = v
 				}
 			}
 			versionKeys[newVersion][op.Key.String()] = op.Value
+
+			// Update current version
+			currentVersion = newVersion
 
 			// Generate and verify proof for this key
 			if err := verifyProofAtVersion(t, newVersion, op.Key, op.Value); err != nil {
@@ -69,14 +74,16 @@ func CheckProofConsistency(t *tree.Tree, ops []generators.Operation) error {
 
 			// Copy previous version's keys and remove deleted key
 			versionKeys[newVersion] = make(map[string][]byte)
-			prevVersion := newVersion - 1
-			if prevKeys, exists := versionKeys[prevVersion]; exists {
+			if prevKeys, exists := versionKeys[currentVersion]; exists {
 				for k, v := range prevKeys {
 					if k != op.Key.String() {
 						versionKeys[newVersion][k] = v
 					}
 				}
 			}
+
+			// Update current version
+			currentVersion = newVersion
 
 			// Verify non-existence proof
 			if err := verifyNonExistenceProof(t, newVersion, op.Key); err != nil {

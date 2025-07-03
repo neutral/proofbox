@@ -43,7 +43,8 @@ jobs:
   fuzz-comprehensive:
     name: Comprehensive Fuzzing
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Only run on schedule, manual trigger, or push to main branch
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     
     steps:
     - name: Checkout code

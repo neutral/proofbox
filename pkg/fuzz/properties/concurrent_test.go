@@ -16,7 +16,7 @@ import (
 )
 
 func TestConcurrentOperations(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		// Create tree
@@ -122,7 +122,7 @@ func TestConcurrentOperations(t *testing.T) {
 }
 
 func TestConcurrentReaders(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		// Create tree with some data
@@ -211,7 +211,7 @@ func TestConcurrentReaders(t *testing.T) {
 }
 
 func TestConcurrentVersionCreation(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		// Create tree

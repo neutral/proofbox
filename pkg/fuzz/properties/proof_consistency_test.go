@@ -13,7 +13,7 @@ import (
 )
 
 func TestProofConsistency(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 
 	rapid.Check(t, func(t *rapid.T) {
@@ -34,7 +34,7 @@ func TestProofConsistency(t *testing.T) {
 }
 
 func TestProofInvalidation(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		// Create tree
@@ -108,7 +108,7 @@ func TestProofInvalidation(t *testing.T) {
 }
 
 func TestConcurrentProofGeneration(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		// Create tree with some data

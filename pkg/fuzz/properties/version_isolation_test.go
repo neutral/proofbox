@@ -12,7 +12,7 @@ import (
 )
 
 func TestVersionIsolation(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 
 	rapid.Check(t, func(t *rapid.T) {
@@ -33,7 +33,7 @@ func TestVersionIsolation(t *testing.T) {
 }
 
 func TestVersionIsolationWithStructuredKeys(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 
 	rapid.Check(t, func(t *rapid.T) {
@@ -55,7 +55,7 @@ func TestVersionIsolationWithStructuredKeys(t *testing.T) {
 }
 
 func TestVersionIsolationEdgeCases(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 
 	rapid.Check(t, func(t *rapid.T) {
@@ -122,7 +122,7 @@ func TestVersionIsolationEdgeCases(t *testing.T) {
 
 // TestVersionIsolationRegression tests the specific bug pattern from step 14
 func TestVersionIsolationRegression(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 
 	rapid.Check(t, func(t *rapid.T) {

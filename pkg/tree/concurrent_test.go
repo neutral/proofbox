@@ -204,6 +204,7 @@ func TestVersionGarbageCollectionConcurrency(t *testing.T) {
 	// Create versions and run GC concurrently
 	var wg sync.WaitGroup
 	errors := make(chan error, 100)
+	versionCreationDone := make(chan bool)
 
 	// Version creator
 	wg.Add(1)
@@ -222,6 +223,7 @@ func TestVersionGarbageCollectionConcurrency(t *testing.T) {
 
 			time.Sleep(10 * time.Millisecond)
 		}
+		close(versionCreationDone)
 	}()
 
 	// Garbage collector
@@ -242,6 +244,20 @@ func TestVersionGarbageCollectionConcurrency(t *testing.T) {
 				t.Logf("GC removed %d versions", len(removed))
 			}
 		}
+
+		// After version creation is done, run final GC passes to ensure cleanup
+		<-versionCreationDone
+		for i := 0; i < 5; i++ {
+			removed, err := tree.CollectVersionGarbage()
+			if err != nil {
+				errors <- fmt.Errorf("final GC error: %w", err)
+				return
+			}
+			if len(removed) > 0 {
+				t.Logf("Final GC removed %d versions", len(removed))
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
 	}()
 
 	wg.Wait()
@@ -253,9 +269,10 @@ func TestVersionGarbageCollectionConcurrency(t *testing.T) {
 	}
 
 	// Verify we don't have too many versions
-	// Allow some buffer since operations are concurrent
+	// The retention policy is 10, so we should have at most 10 versions
+	// plus a small buffer for any in-flight operations
 	allVersions := tree.versionManager.GetAllVersions()
-	assert.LessOrEqual(t, len(allVersions), 30, "Too many versions retained")
+	assert.LessOrEqual(t, len(allVersions), 15, "Too many versions retained")
 }
 
 func TestConcurrentAborts(t *testing.T) {

@@ -1,0 +1,200 @@
+name: Nightly Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test level (standard, comprehensive, stress)'
+        required: false
+        default: 'comprehensive'
+
+jobs:
+  comprehensive-tests:
+    name: Comprehensive Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run comprehensive tests
+        run: make test-long
+        timeout-minutes: 40
+
+      - name: Generate full coverage report
+        run: |
+          go test -coverprofile=coverage-full.txt -covermode=atomic ./...
+          go tool cover -html=coverage-full.txt -o coverage-full.html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_number }}
+          path: |
+            coverage-full.txt
+            coverage-full.html
+          retention-days: 30
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage-full.txt
+          flags: nightly
+          name: nightly-coverage
+
+  performance-validation:
+    name: Performance Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run performance benchmarks
+        run: |
+          make bench-all
+          make bench-validate
+
+      - name: Generate performance report
+        run: make bench-report
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_number }}
+          path: |
+            bench/results/
+          retention-days: 90
+
+  extended-fuzzing:
+    name: Extended Fuzzing
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules and fuzz corpus
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build/fuzz
+            testdata/fuzz
+          key: ${{ runner.os }}-fuzz-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-fuzz-
+
+      - name: Run comprehensive property tests
+        run: |
+          FUZZ_LEVEL="${{ github.event.inputs.test_level || 'comprehensive' }}"
+          echo "Running fuzzing with level: $FUZZ_LEVEL"
+          make fuzz-$FUZZ_LEVEL
+        timeout-minutes: 60
+
+      - name: Run native Go fuzzing
+        run: |
+          go test -fuzz=. -fuzztime=30m ./pkg/fuzz/...
+        timeout-minutes: 40
+
+      - name: Upload fuzz artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-${{ github.run_number }}
+          path: |
+            testdata/fuzz/
+            testdata/rapid/
+          retention-days: 90
+
+  memory-leak-detection:
+    name: Memory Leak Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install memory profiling tools
+        run: |
+          go install github.com/google/pprof@latest
+
+      - name: Run memory leak tests
+        run: |
+          go test -v -run=TestMemory ./pkg/fuzz/performance/...
+          go test -v -memprofile=mem.prof -run=TestLongRunning ./pkg/tree/...
+
+      - name: Analyze memory profile
+        if: always()
+        run: |
+          if [ -f mem.prof ]; then
+            go tool pprof -text mem.prof > memory-analysis.txt
+          fi
+
+      - name: Upload memory analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-analysis-${{ github.run_number }}
+          path: |
+            *.prof
+            memory-analysis.txt
+          retention-days: 30
+
+  notification:
+    name: Send Notifications
+    needs: [comprehensive-tests, performance-validation, extended-fuzzing, memory-leak-detection]
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Notify on failure
+        run: |
+          echo "Nightly tests failed! Check the workflow run for details."
+          # In a real setup, this would send notifications to Slack, email, etc.

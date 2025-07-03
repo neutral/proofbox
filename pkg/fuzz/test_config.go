@@ -49,6 +49,26 @@ func GetTestConfig() TestConfig {
 	}
 }
 
+// GetTestConfigWithShort returns test configuration respecting testing.Short()
+func GetTestConfigWithShort(t *testing.T) TestConfig {
+	config := GetTestConfig()
+
+	// If testing.Short() is set, reduce iterations
+	if testing.Short() {
+		switch config.Level {
+		case TestLevelStandard:
+			config.Iterations = 20
+		case TestLevelComprehensive:
+			config.Iterations = 50
+		case TestLevelStress:
+			config.Iterations = 100
+		}
+		// Quick level stays the same (20)
+	}
+
+	return config
+}
+
 // ApplyToRapid configures rapid testing with the appropriate iteration count
 // Note: Rapid uses the -rapid.checks flag for iteration count, so we primarily
 // use this for logging and conditional test execution

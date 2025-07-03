@@ -178,7 +178,7 @@ func (m *treeStateMachine) Check(t *rapid.T) {
 }
 
 func TestTreeStateMachine(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		m := &treeStateMachine{}
@@ -189,7 +189,7 @@ func TestTreeStateMachine(t *testing.T) {
 
 // TestTreeStateMachineVersionIsolation focuses on version isolation in state machine
 func TestTreeStateMachineVersionIsolation(t *testing.T) {
-	config := fuzz.GetTestConfig()
+	config := fuzz.GetTestConfigWithShort(t)
 	config.ApplyToRapid(t)
 	rapid.Check(t, func(t *rapid.T) {
 		m := &treeStateMachine{}
