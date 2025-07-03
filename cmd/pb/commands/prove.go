@@ -77,7 +77,7 @@ func runProve(cmd *cobra.Command, args []string) error {
 	}
 
 	// Use latest version if not specified
-	if cmd.Flags().Changed("version") == false {
+	if !cmd.Flags().Changed("version") {
 		version = uint64(tree.GetLatestVersion())
 	}
 
@@ -145,7 +145,7 @@ func runProve(cmd *cobra.Command, args []string) error {
 		if err := validatePath(outputFile); err != nil {
 			return fmt.Errorf("invalid proof output path: %w", err)
 		}
-		
+
 		file, err := os.Create(outputFile)
 		if err != nil {
 			return fmt.Errorf("failed to create output file: %w", err)

@@ -29,14 +29,14 @@ type BatchFile struct {
 
 // BatchResult represents the result of a batch execution
 type BatchResult struct {
-	TotalOperations   int                      `json:"total_operations"`
-	SuccessfulOps     int                      `json:"successful_operations"`
-	FailedOps         int                      `json:"failed_operations"`
-	StartVersion      types.Version            `json:"start_version"`
-	EndVersion        types.Version            `json:"end_version"`
-	Duration          string                   `json:"duration"`
-	Errors            []string                 `json:"errors,omitempty"`
-	OperationResults  []OperationResult        `json:"operation_results,omitempty"`
+	TotalOperations  int               `json:"total_operations"`
+	SuccessfulOps    int               `json:"successful_operations"`
+	FailedOps        int               `json:"failed_operations"`
+	StartVersion     types.Version     `json:"start_version"`
+	EndVersion       types.Version     `json:"end_version"`
+	Duration         string            `json:"duration"`
+	Errors           []string          `json:"errors,omitempty"`
+	OperationResults []OperationResult `json:"operation_results,omitempty"`
 }
 
 // OperationResult represents the result of a single operation
@@ -78,7 +78,7 @@ func init() {
 func runBatch(cmd *cobra.Command, args []string) error {
 	// Read batch file
 	batchFilePath := args[0]
-	
+
 	// Validate file path
 	if err := validatePath(batchFilePath); err != nil {
 		return fmt.Errorf("invalid batch file path: %w", err)
@@ -88,7 +88,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 	if err := validateFileSize(batchFilePath, maxImportFileSize); err != nil {
 		return err
 	}
-	
+
 	file, err := os.Open(batchFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open batch file: %w", err)
@@ -124,10 +124,10 @@ func runBatch(cmd *cobra.Command, args []string) error {
 
 	if dryRun {
 		result := map[string]interface{}{
-			"status":           "dry_run",
-			"valid":            true,
-			"operation_count":  len(batch.Operations),
-			"operations":       batch.Operations,
+			"status":          "dry_run",
+			"valid":           true,
+			"operation_count": len(batch.Operations),
+			"operations":      batch.Operations,
 		}
 		return outputResult(result)
 	}
@@ -148,7 +148,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 	// Execute batch atomically
 	startTime := time.Now()
 	startVersion := tree.GetLatestVersion()
-	
+
 	result := &BatchResult{
 		TotalOperations: len(batch.Operations),
 		StartVersion:    startVersion,
@@ -165,7 +165,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 	// Add all operations to the batch
 	for i, op := range batch.Operations {
 		key := types.KeyHash([]byte(op.Key))
-		
+
 		var err error
 		switch op.Type {
 		case "put":
@@ -189,7 +189,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		// All operations failed
 		result.FailedOps = len(batch.Operations)
 		result.Errors = append(result.Errors, fmt.Sprintf("batch execution failed: %v", err))
-		
+
 		if verboseMode {
 			// Mark all operations as failed
 			for i, op := range batch.Operations {
@@ -206,7 +206,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		// All operations succeeded
 		result.SuccessfulOps = len(batch.Operations)
 		result.EndVersion = version
-		
+
 		if verboseMode {
 			// Mark all operations as successful with the same version
 			for i, op := range batch.Operations {

@@ -42,12 +42,12 @@ func TestOpenDatabase(t *testing.T) {
 			setup: func() string {
 				tmpDir := t.TempDir()
 				dbPath := filepath.Join(tmpDir, "test.db")
-				
+
 				// Initialize a minimal pebble database
 				rootCmd.SetArgs([]string{"init", "--db", dbPath})
 				err := rootCmd.Execute()
 				require.NoError(t, err)
-				
+
 				return dbPath
 			},
 			wantErr: false,
@@ -57,9 +57,9 @@ func TestOpenDatabase(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dbPath := tt.setup()
-			
+
 			store, keyEncoder, err := openDatabase(dbPath)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errContains != "" {

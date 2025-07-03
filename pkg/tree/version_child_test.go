@@ -88,7 +88,6 @@ func TestComplexVersionBoundaries(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a series of versions with overlapping key sets
-	versions := make([]types.Version, 0)
 
 	// Version 1: keys 0-9
 	v1, err := tree.BeginVersion()
@@ -100,7 +99,6 @@ func TestComplexVersionBoundaries(t *testing.T) {
 	}
 	err = tree.CommitVersion(v1)
 	require.NoError(t, err)
-	versions = append(versions, v1)
 
 	// Version 2: add keys 10-19
 	v2, err := tree.BeginVersion()
@@ -112,7 +110,6 @@ func TestComplexVersionBoundaries(t *testing.T) {
 	}
 	err = tree.CommitVersion(v2)
 	require.NoError(t, err)
-	versions = append(versions, v2)
 
 	// Version 3: add keys 20-29
 	v3, err := tree.BeginVersion()
@@ -124,7 +121,6 @@ func TestComplexVersionBoundaries(t *testing.T) {
 	}
 	err = tree.CommitVersion(v3)
 	require.NoError(t, err)
-	versions = append(versions, v3)
 
 	// Verify version boundaries are respected
 	// Keys 10-29 should NOT exist in version 1

@@ -12,11 +12,11 @@ import (
 func TestDoubleClose(t *testing.T) {
 	t.Run("MemoryStorage", func(t *testing.T) {
 		store := memory.NewStorage()
-		
+
 		// First close should succeed
 		err := store.Close()
 		assert.NoError(t, err)
-		
+
 		// Second close should not panic or error
 		err = store.Close()
 		assert.NoError(t, err)
@@ -26,11 +26,11 @@ func TestDoubleClose(t *testing.T) {
 		tmpDir := t.TempDir()
 		store, err := pebble.NewStorage(tmpDir, nil)
 		require.NoError(t, err)
-		
+
 		// First close should succeed
 		err = store.Close()
 		assert.NoError(t, err)
-		
+
 		// Second close should not panic or error
 		err = store.Close()
 		assert.NoError(t, err)

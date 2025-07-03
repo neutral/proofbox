@@ -61,32 +61,33 @@ func runPut(cmd *cobra.Command, args []string) error {
 
 	// Get value
 	var value []byte
-	if fileValue != "" {
+	switch {
+	case fileValue != "":
 		// Validate file path
 		if err := validatePath(fileValue); err != nil {
 			return fmt.Errorf("invalid value file path: %w", err)
 		}
-		
+
 		// Check file size
 		if err := validateFileSize(fileValue, maxImportFileSize); err != nil {
 			return fmt.Errorf("value file too large: %w", err)
 		}
-		
+
 		// Read from file
 		file, err := os.Open(fileValue)
 		if err != nil {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
 		defer file.Close()
-		
+
 		value, err = io.ReadAll(file)
 		if err != nil {
 			return fmt.Errorf("failed to read file: %w", err)
 		}
-	} else if len(args) > 1 {
+	case len(args) > 1:
 		// Value from command line
 		value = []byte(args[1])
-	} else {
+	default:
 		return fmt.Errorf("value is required (provide as argument or use --file-value)")
 	}
 
@@ -119,7 +120,7 @@ func runPut(cmd *cobra.Command, args []string) error {
 		sanitizedKeyHex := sanitizeKey(hex.EncodeToString(key[:]), true)
 		result["key_hex"] = sanitizedKeyHex
 		result["value_size"] = len(value)
-		
+
 		// Only show sanitized value preview if small enough
 		if len(value) <= 64 {
 			result["value_preview"] = string(value)

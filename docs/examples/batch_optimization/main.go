@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/neutral/proofbox/docs/examples/utils"
 	"fmt"
 	"os"
+
+	"github.com/neutral/proofbox/docs/examples/utils"
 
 	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
@@ -20,7 +21,7 @@ func main() {
 	defer cleanup()
 
 	utils.PrintSection("Batch Optimization Example")
-	
+
 	// Create tree with optimization enabled
 	config := tree.DefaultTreeConfig()
 	config.BatchOptimizer = tree.NewBatchOptimizer(tree.BatchOptimizerConfig{
@@ -29,13 +30,13 @@ func main() {
 		EnableDeduplication: true,
 		EnableCoalescing:    true,
 	})
-	
+
 	jmt, err := tree.NewTree(store, nil, config)
 	if err != nil {
 		utils.PrintError("Failed to create tree: %v", err)
 		os.Exit(1)
 	}
-	
+
 	// Create a batch with many operations
 	utils.PrintSection("Creating Large Batch")
 	version, err := jmt.BeginVersion()
@@ -43,17 +44,17 @@ func main() {
 		utils.PrintError("Failed to begin version: %v", err)
 		os.Exit(1)
 	}
-	
+
 	// Add operations that will benefit from optimization
 	numOperations := 150
 	utils.PrintInfo("Adding %d operations...", numOperations)
-	
+
 	// Add some keys multiple times (for deduplication)
 	for i := 0; i < numOperations; i++ {
 		var key types.Key
 		var value []byte
-		
-		if i % 10 < 3 {
+
+		if i%10 < 3 {
 			// Reuse some keys to demonstrate deduplication
 			key = types.KeyHash([]byte(fmt.Sprintf("duplicate-key-%d", i%10)))
 			value = []byte(fmt.Sprintf("value-iteration-%d", i))
@@ -62,33 +63,33 @@ func main() {
 			key = types.KeyHash([]byte(fmt.Sprintf("unique-key-%d", i)))
 			value = []byte(fmt.Sprintf("This is a longer value to demonstrate compression benefits. Iteration: %d", i))
 		}
-		
+
 		err := jmt.PutVersioned(version, key, value)
 		if err != nil {
 			utils.PrintError("Failed to put key: %v", err)
 			continue
 		}
-		
+
 		// Show progress
-		if (i+1) % (numOperations/5) == 0 {
+		if (i+1)%(numOperations/5) == 0 {
 			fmt.Printf("  %sProgress: %d/%d operations%s\r", utils.ColorGray, i+1, numOperations, utils.ColorReset)
 		}
 	}
 	fmt.Println() // Clear progress line
-	
+
 	// Get batch statistics before commit
 	utils.PrintSection("Batch Statistics")
-	
+
 	// To demonstrate, we'll create our own batch optimizer and test it
 	optimizer := tree.NewBatchOptimizer(tree.DefaultBatchOptimizerConfig())
-	
+
 	// Create a sample batch for statistics
 	sampleBatch := &tree.UpdateBatch{
 		NewRootHash: types.Hash{},
 		NewNodes:    make(map[string]tree.NodeWrite),
 		StaleNodes:  make([]types.NodeKey, 0),
 	}
-	
+
 	// Add sample nodes
 	for i := 0; i < 100; i++ {
 		key := fmt.Sprintf("node%d", i)
@@ -103,7 +104,7 @@ func main() {
 			Node: leafNode,
 		}
 	}
-	
+
 	// Get statistics
 	stats, err := optimizer.GetBatchStats(sampleBatch)
 	if err != nil {
@@ -113,14 +114,14 @@ func main() {
 		utils.PrintKeyValue("Leaf Nodes", stats.LeafNodes)
 		utils.PrintKeyValue("Internal Nodes", stats.InternalNodes)
 		utils.PrintKeyValue("Stale Nodes", stats.StaleNodes)
-		
+
 		if stats.CompressionRatio > 0 {
 			utils.PrintKeyValue("Uncompressed Size", utils.FormatBytes(stats.UncompressedSize))
 			utils.PrintKeyValue("Compressed Size", utils.FormatBytes(stats.CompressedSize))
 			utils.PrintKeyValue("Compression Ratio", fmt.Sprintf("%.1f%%", stats.CompressionRatio*100))
 		}
 	}
-	
+
 	// Commit the batch
 	utils.PrintSection("Committing Optimized Batch")
 	err = jmt.CommitVersion(version)
@@ -128,27 +129,27 @@ func main() {
 		utils.PrintError("Failed to commit: %v", err)
 		os.Exit(1)
 	}
-	
+
 	utils.PrintSuccess("Batch committed successfully!")
-	
+
 	// Demonstrate compression
 	utils.PrintSection("Compression Demonstration")
-	
+
 	// Create test data
 	testBatch := &tree.UpdateBatch{
 		NewRootHash: types.Hash{1, 2, 3, 4, 5},
 		NewNodes:    make(map[string]tree.NodeWrite),
 		StaleNodes:  make([]types.NodeKey, 50),
 	}
-	
+
 	// Add nodes with repetitive data (compresses well)
 	for i := 0; i < 200; i++ {
 		key := fmt.Sprintf("compress-test-%d", i)
 		// Create a proper leaf node with repetitive data
 		leafNode, _ := tree.NewLeafNode(
 			types.Key{byte(i % 256)},
-			[]byte("This is repetitive data that compresses well. " +
-				"The same pattern repeated many times. " +
+			[]byte("This is repetitive data that compresses well. "+
+				"The same pattern repeated many times. "+
 				"This helps demonstrate compression benefits."),
 			types.Version(1),
 		)
@@ -157,19 +158,19 @@ func main() {
 			Node: leafNode,
 		}
 	}
-	
+
 	// Test compression
 	compressed, err := optimizer.CompressBatch(testBatch)
 	if err != nil {
 		utils.PrintError("Compression failed: %v", err)
 	} else {
 		uncompressed, _ := optimizer.GetBatchStats(testBatch)
-		
+
 		utils.PrintKeyValue("Original size", utils.FormatBytes(uncompressed.UncompressedSize))
 		utils.PrintKeyValue("Compressed size", utils.FormatBytes(int64(len(compressed))))
-		utils.PrintKeyValue("Compression ratio", fmt.Sprintf("%.1f%%", 
-			(1.0 - float64(len(compressed))/float64(uncompressed.UncompressedSize)) * 100))
-		
+		utils.PrintKeyValue("Compression ratio", fmt.Sprintf("%.1f%%",
+			(1.0-float64(len(compressed))/float64(uncompressed.UncompressedSize))*100))
+
 		// Test decompression
 		decompressed, err := optimizer.DecompressBatch(compressed)
 		if err != nil {
@@ -179,18 +180,18 @@ func main() {
 			utils.PrintKeyValue("Nodes after decompression", len(decompressed.NewNodes))
 		}
 	}
-	
+
 	// Show optimization benefits
 	utils.PrintSection("Optimization Benefits")
 	utils.PrintSuccess("✓ Deduplication removes redundant operations")
 	utils.PrintSuccess("✓ Compression reduces storage I/O")
 	utils.PrintSuccess("✓ Batch validation ensures integrity")
 	utils.PrintSuccess("✓ Atomic commits prevent partial updates")
-	
+
 	// Verify some keys
 	utils.PrintSection("Verification")
 	keysToCheck := []string{"duplicate-key-0", "duplicate-key-1", "unique-key-50"}
-	
+
 	for _, k := range keysToCheck {
 		key := types.KeyHash([]byte(k))
 		value, err := jmt.GetAtVersion(version, key)
@@ -200,7 +201,7 @@ func main() {
 			utils.PrintSuccess("%s: %d bytes stored", k, len(value))
 		}
 	}
-	
+
 	utils.PrintSuccess("\nBatch optimization demonstration complete!")
 }
 

@@ -30,8 +30,7 @@ func (vt *VersionTracker) RecordPut(key types.Key, version types.Version) {
 
 // FirstVersion returns the first version a key appeared in, or 0 if never added
 func (vt *VersionTracker) FirstVersion(key types.Key) types.Version {
-	keyStr := string(key.Bytes())
-	if v, exists := vt.keyVersionMap[keyStr]; exists {
+	if v, exists := vt.keyVersionMap[string(key.Bytes())]; exists {
 		return v
 	}
 	return 0
@@ -40,7 +39,7 @@ func (vt *VersionTracker) FirstVersion(key types.Key) types.Version {
 // CheckVersionIsolation verifies that keys are only visible in versions >= when they were added
 func CheckVersionIsolation(t *tree.Tree, ops []generators.Operation) error {
 	tracker := NewVersionTracker()
-	
+
 	for i, op := range ops {
 		switch op.Type {
 		case generators.OpPut:
@@ -49,29 +48,29 @@ func CheckVersionIsolation(t *tree.Tree, ops []generators.Operation) error {
 			if err != nil {
 				return fmt.Errorf("put operation %d failed: %w", i, err)
 			}
-			
+
 			// Record when this key was first added
 			tracker.RecordPut(op.Key, newVersion)
-			
+
 		case generators.OpGet:
 			// Skip if trying to get from a version that doesn't exist yet
 			latestVersion := t.GetLatestVersion()
 			if op.Version > latestVersion {
 				continue
 			}
-			
+
 			// Get value at specific version
 			value, err := t.GetAtVersion(op.Version, op.Key)
 			if err != nil {
 				// Version not found or not committed is expected if we haven't created it yet
 				errStr := err.Error()
 				if errStr == "version "+fmt.Sprint(op.Version)+" not found" ||
-				   errStr == "version "+fmt.Sprint(op.Version)+" not committed" {
+					errStr == "version "+fmt.Sprint(op.Version)+" not committed" {
 					continue
 				}
 				return fmt.Errorf("get operation %d failed: %w", i, err)
 			}
-			
+
 			// Check version isolation invariant
 			firstVersion := tracker.FirstVersion(op.Key)
 			if firstVersion > 0 { // Key has been added
@@ -85,7 +84,7 @@ func CheckVersionIsolation(t *tree.Tree, ops []generators.Operation) error {
 						op.Key.Bytes())
 				}
 			}
-			
+
 		case generators.OpDelete:
 			// Delete operations may fail if key doesn't exist, which is fine
 			newVersion, err := t.Delete(op.Key)
@@ -100,7 +99,7 @@ func CheckVersionIsolation(t *tree.Tree, ops []generators.Operation) error {
 			_ = newVersion
 		}
 	}
-	
+
 	return nil
 }
 
@@ -108,10 +107,14 @@ func CheckVersionIsolation(t *tree.Tree, ops []generators.Operation) error {
 func CheckVersionIsolationWithRootHashes(t *tree.Tree, ops []generators.Operation) error {
 	tracker := NewVersionTracker()
 	rootHashes := make(map[types.Version]types.Hash)
-	
+
 	// Get initial root hash
-	rootHashes[0], _ = t.GetRootHash(t.GetLatestVersion())
-	
+	initialHash, err := t.GetRootHash(t.GetLatestVersion())
+	if err != nil {
+		return fmt.Errorf("failed to get initial root hash: %w", err)
+	}
+	rootHashes[0] = initialHash
+
 	for i, op := range ops {
 		switch op.Type {
 		case generators.OpPut:
@@ -119,10 +122,14 @@ func CheckVersionIsolationWithRootHashes(t *tree.Tree, ops []generators.Operatio
 			if err != nil {
 				return fmt.Errorf("put operation %d failed: %w", i, err)
 			}
-			
+
 			tracker.RecordPut(op.Key, newVersion)
-			rootHashes[newVersion], _ = t.GetRootHash(newVersion)
-			
+			hash, err := t.GetRootHash(newVersion)
+			if err != nil {
+				return fmt.Errorf("failed to get root hash at version %d: %w", newVersion, err)
+			}
+			rootHashes[newVersion] = hash
+
 			// Verify root hash changed (unless we're updating with same value)
 			if newVersion > 0 {
 				prevHash := rootHashes[newVersion-1]
@@ -131,24 +138,24 @@ func CheckVersionIsolationWithRootHashes(t *tree.Tree, ops []generators.Operatio
 					// In a more sophisticated test, we'd track values too
 				}
 			}
-			
+
 		case generators.OpGet:
 			// Skip if trying to get from a version that doesn't exist yet
 			if op.Version > t.GetLatestVersion() {
 				continue
 			}
-			
+
 			value, err := t.GetAtVersion(op.Version, op.Key)
 			if err != nil {
 				// Version not found or not committed is expected
 				errStr := err.Error()
 				if errStr == "version "+fmt.Sprint(op.Version)+" not found" ||
-				   errStr == "version "+fmt.Sprint(op.Version)+" not committed" {
+					errStr == "version "+fmt.Sprint(op.Version)+" not committed" {
 					continue
 				}
 				return fmt.Errorf("get operation %d failed: %w", i, err)
 			}
-			
+
 			firstVersion := tracker.FirstVersion(op.Key)
 			if firstVersion > 0 {
 				if op.Version < firstVersion && value != nil {
@@ -161,7 +168,7 @@ func CheckVersionIsolationWithRootHashes(t *tree.Tree, ops []generators.Operatio
 						op.Key.Bytes())
 				}
 			}
-			
+
 		case generators.OpDelete:
 			_, err := t.Delete(op.Key)
 			if err != nil {
@@ -173,6 +180,6 @@ func CheckVersionIsolationWithRootHashes(t *tree.Tree, ops []generators.Operatio
 			}
 		}
 	}
-	
+
 	return nil
 }

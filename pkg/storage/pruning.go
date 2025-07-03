@@ -39,7 +39,7 @@ func (p *KeepLastNVersions) ShouldPrune(version types.Version, info VersionInfo)
 	if version == p.currentVersion {
 		return false
 	}
-	
+
 	// Keep if within N versions of current
 	return p.currentVersion-version > types.Version(p.N)
 }
@@ -83,7 +83,7 @@ func (p *KeepMilestoneVersions) ShouldPrune(version types.Version, info VersionI
 	if version == p.currentVersion {
 		return false
 	}
-	
+
 	// Keep if it's a milestone version
 	return uint64(version)%uint64(p.Interval) != 0
 }
@@ -110,7 +110,7 @@ func (p *CompositePruningPolicy) ShouldPrune(version types.Version, info Version
 
 	for _, policy := range p.Policies {
 		shouldPrune := policy.ShouldPrune(version, info)
-		
+
 		if p.All && !shouldPrune {
 			// AND logic: if any policy says keep, we keep
 			return false

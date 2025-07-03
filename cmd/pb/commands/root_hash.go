@@ -37,7 +37,7 @@ func runRootHash(cmd *cobra.Command, args []string) error {
 	}
 
 	// Use latest version if not specified
-	if cmd.Flags().Changed("version") == false {
+	if !cmd.Flags().Changed("version") {
 		version = uint64(tree.GetLatestVersion())
 	}
 

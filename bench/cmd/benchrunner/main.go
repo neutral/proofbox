@@ -60,7 +60,7 @@ func main() {
 	flag.Parse()
 
 	startTime := time.Now()
-	
+
 	// Get module root and change to it
 	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}")
 	output, err := cmd.Output()
@@ -68,12 +68,12 @@ func main() {
 		log.Fatal("Failed to get module root:", err)
 	}
 	moduleRoot := strings.TrimSpace(string(output))
-	
+
 	// Change to module root directory
 	if err := os.Chdir(moduleRoot); err != nil {
 		log.Fatal("Failed to change to module root:", err)
 	}
-	
+
 	// Collect system info
 	sysInfo := SystemInfo{
 		GoVersion:  runtime.Version(),
@@ -99,18 +99,18 @@ func main() {
 
 	// Run benchmarks and collect results
 	var allResults []BenchmarkResult
-	
+
 	for _, pkg := range packages {
 		if *verbose {
 			fmt.Printf("Running benchmarks in %s...\n", pkg)
 		}
-		
+
 		results, err := runBenchmarks(pkg)
 		if err != nil {
 			log.Printf("Error running benchmarks in %s: %v", pkg, err)
 			continue
 		}
-		
+
 		allResults = append(allResults, results...)
 	}
 
@@ -139,13 +139,13 @@ func findPackagesWithBenchmarks() []string {
 	var packages []string
 	filesChecked := 0
 	benchmarksFound := 0
-	
+
 	// Search for benchmark files from current directory (which is module root)
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		// Skip vendor and hidden directories (but not the root ".")
 		if info.IsDir() && path != "." && (strings.HasPrefix(info.Name(), ".") || info.Name() == "vendor") {
 			if *verbose {
@@ -153,7 +153,7 @@ func findPackagesWithBenchmarks() []string {
 			}
 			return filepath.SkipDir
 		}
-		
+
 		// Look for test files
 		if strings.HasSuffix(path, "_test.go") {
 			filesChecked++
@@ -165,11 +165,11 @@ func findPackagesWithBenchmarks() []string {
 				}
 				return nil
 			}
-			
+
 			if regexp.MustCompile(`func\s+Benchmark`).Match(content) {
 				benchmarksFound++
 				pkg := "./" + filepath.Dir(path)
-				
+
 				// Avoid duplicates
 				found := false
 				for _, p := range packages {
@@ -186,19 +186,19 @@ func findPackagesWithBenchmarks() []string {
 				}
 			}
 		}
-		
+
 		return nil
 	})
-	
+
 	if err != nil {
 		log.Printf("Error searching for packages: %v", err)
 	}
-	
+
 	if *verbose {
-		fmt.Printf("Files checked: %d, Benchmarks found: %d, Packages: %d\n", 
+		fmt.Printf("Files checked: %d, Benchmarks found: %d, Packages: %d\n",
 			filesChecked, benchmarksFound, len(packages))
 	}
-	
+
 	sort.Strings(packages)
 	return packages
 }
@@ -213,7 +213,7 @@ func runBenchmarks(pkg string) ([]BenchmarkResult, error) {
 		"-run=^$", // Don't run regular tests
 		pkg,
 	}
-	
+
 	cmd := exec.Command("go", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -223,61 +223,61 @@ func runBenchmarks(pkg string) ([]BenchmarkResult, error) {
 		}
 		return nil, fmt.Errorf("benchmark failed: %v\n%s", err, output)
 	}
-	
+
 	return parseBenchmarkOutput(string(output), pkg)
 }
 
 // parseBenchmarkOutput parses the output of go test -bench
 func parseBenchmarkOutput(output, pkg string) ([]BenchmarkResult, error) {
 	var results []BenchmarkResult
-	
+
 	// Regex to match benchmark output lines
 	benchRe := regexp.MustCompile(`^Benchmark(\S+)\s+(\d+)\s+(\d+(?:\.\d+)?)\s+ns/op(?:\s+(\d+)\s+B/op)?(?:\s+(\d+)\s+allocs/op)?(?:\s+(\S+)\s+MB/s)?`)
-	
+
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
 		matches := benchRe.FindStringSubmatch(line)
 		if matches == nil {
 			continue
 		}
-		
+
 		result := BenchmarkResult{
 			Name:      "Benchmark" + matches[1],
 			Package:   pkg,
 			Timestamp: time.Now(),
 		}
-		
+
 		// Parse iterations
 		if n, err := strconv.Atoi(matches[2]); err == nil {
 			result.Iterations = n
 		}
-		
+
 		// Parse ns/op
 		if ns, err := strconv.ParseFloat(matches[3], 64); err == nil {
 			result.NsPerOp = ns
 		}
-		
+
 		// Parse B/op if present
 		if len(matches) > 4 && matches[4] != "" {
 			if b, err := strconv.ParseInt(matches[4], 10, 64); err == nil {
 				result.BytesPerOp = b
 			}
 		}
-		
+
 		// Parse allocs/op if present
 		if len(matches) > 5 && matches[5] != "" {
 			if a, err := strconv.ParseInt(matches[5], 10, 64); err == nil {
 				result.AllocsPerOp = a
 			}
 		}
-		
+
 		// Parse MB/s if present
 		if len(matches) > 6 && matches[6] != "" {
 			if mb, err := strconv.ParseFloat(matches[6], 64); err == nil {
 				result.MBPerSec = mb
 			}
 		}
-		
+
 		// Look for custom metrics (e.g., "50000 ops/sec")
 		if idx := strings.Index(line, matches[0]); idx >= 0 {
 			remainder := line[idx+len(matches[0]):]
@@ -285,24 +285,24 @@ func parseBenchmarkOutput(output, pkg string) ([]BenchmarkResult, error) {
 				result.CustomMetric = strings.TrimSpace(metricMatch[1])
 			}
 		}
-		
+
 		results = append(results, result)
 	}
-	
+
 	return results, nil
 }
 
 // outputResults writes the results in the specified format
 func outputResults(report Report) error {
 	var output io.Writer = os.Stdout
-	
+
 	if *outputFile != "" {
 		// Ensure directory exists
 		dir := filepath.Dir(*outputFile)
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create output directory: %w", err)
 		}
-		
+
 		f, err := os.Create(*outputFile)
 		if err != nil {
 			return fmt.Errorf("failed to create output file: %w", err)
@@ -310,7 +310,7 @@ func outputResults(report Report) error {
 		defer f.Close()
 		output = f
 	}
-	
+
 	switch *outputFormat {
 	case "json":
 		return outputJSON(output, report)
@@ -331,13 +331,13 @@ func outputJSON(w io.Writer, report Report) error {
 // outputCSV writes results in CSV format
 func outputCSV(w io.Writer, report Report) error {
 	fmt.Fprintln(w, "Package,Benchmark,Iterations,ns/op,B/op,allocs/op,MB/s,Custom Metric")
-	
+
 	for _, r := range report.Results {
 		fmt.Fprintf(w, "%s,%s,%d,%.2f,%d,%d,%.2f,%s\n",
 			r.Package, r.Name, r.Iterations, r.NsPerOp,
 			r.BytesPerOp, r.AllocsPerOp, r.MBPerSec, r.CustomMetric)
 	}
-	
+
 	return nil
 }
 
@@ -345,35 +345,35 @@ func outputCSV(w io.Writer, report Report) error {
 func outputText(w io.Writer, report Report) error {
 	fmt.Fprintf(w, "ProofBox Benchmark Report\n")
 	fmt.Fprintf(w, "========================\n\n")
-	
+
 	fmt.Fprintf(w, "System Information:\n")
 	fmt.Fprintf(w, "  Go Version: %s\n", report.SystemInfo.GoVersion)
 	fmt.Fprintf(w, "  Platform: %s/%s\n", report.SystemInfo.GOOS, report.SystemInfo.GOARCH)
 	fmt.Fprintf(w, "  CPUs: %d\n", report.SystemInfo.NumCPU)
 	fmt.Fprintf(w, "  Timestamp: %s\n", report.Timestamp.Format(time.RFC3339))
 	fmt.Fprintf(w, "\n")
-	
+
 	// Group results by package
 	byPackage := make(map[string][]BenchmarkResult)
 	for _, r := range report.Results {
 		byPackage[r.Package] = append(byPackage[r.Package], r)
 	}
-	
+
 	// Sort packages
 	var packages []string
 	for pkg := range byPackage {
 		packages = append(packages, pkg)
 	}
 	sort.Strings(packages)
-	
+
 	// Output results by package
 	for _, pkg := range packages {
 		fmt.Fprintf(w, "Package: %s\n", pkg)
 		fmt.Fprintf(w, "%s\n", strings.Repeat("-", 80))
-		
+
 		for _, r := range byPackage[pkg] {
 			fmt.Fprintf(w, "%-40s %8d %12.2f ns/op", r.Name, r.Iterations, r.NsPerOp)
-			
+
 			if r.BytesPerOp > 0 {
 				fmt.Fprintf(w, " %8d B/op", r.BytesPerOp)
 			}
@@ -386,22 +386,22 @@ func outputText(w io.Writer, report Report) error {
 			if r.CustomMetric != "" {
 				fmt.Fprintf(w, " [%s]", r.CustomMetric)
 			}
-			
+
 			// Calculate ops/sec for readability
 			if r.NsPerOp > 0 {
 				opsPerSec := 1_000_000_000 / r.NsPerOp
 				fmt.Fprintf(w, " (%.0f ops/sec)", opsPerSec)
 			}
-			
+
 			fmt.Fprintln(w)
 		}
 		fmt.Fprintln(w)
 	}
-	
+
 	fmt.Fprintf(w, "Summary:\n")
 	fmt.Fprintf(w, "  Total benchmarks: %d\n", len(report.Results))
 	fmt.Fprintf(w, "  Packages tested: %d\n", report.PackageCount)
 	fmt.Fprintf(w, "  Total time: %v\n", report.TotalTime)
-	
+
 	return nil
 }

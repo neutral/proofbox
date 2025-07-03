@@ -33,7 +33,7 @@ func Generate(reader tree.TreeReaderInterface, key types.Key) (*Proof, error) {
 func (g *Generator) Generate(key types.Key) (*Proof, error) {
 	start := time.Now()
 	metrics := g.reader.Metrics()
-	
+
 	// Validate key
 	if err := types.ValidateKey(key); err != nil {
 		metrics.RecordError("validation")
@@ -42,33 +42,33 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 
 	rootHash := g.reader.RootHash()
 	version := g.reader.Version()
-	
+
 	proof := &Proof{
 		Key:      key,
 		RootHash: rootHash,
 		Version:  version,
 		Siblings: make([]SiblingData, 0),
 	}
-	
+
 	// Handle empty tree
 	if rootHash == types.EmptyHash() {
 		proof.Type = ProofTypeExclusionEmpty
-		
+
 		// Record metrics for empty tree proof
 		duration := time.Since(start).Seconds()
 		proofSize := proof.EstimateSize()
 		metrics.RecordProofGeneration(duration, "exclusion", proofSize)
-		
+
 		return proof, nil
 	}
-	
+
 	// Traverse tree collecting siblings
 	nibblePath := key.ToNibblePath()
 	nodeKey := types.RootNodeKey(version)
-	
+
 	// Track the path we take for neighbor proofs
 	pathTaken := make([]types.Nibble, 0, types.MaxTreeDepth)
-	
+
 	for depth := 0; depth < types.MaxTreeDepth; depth++ {
 		node, err := g.reader.GetNode(nodeKey)
 		if err != nil {
@@ -79,7 +79,7 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 			// This shouldn't happen with a non-empty root
 			return nil, fmt.Errorf("unexpected nil node at depth %d", depth)
 		}
-		
+
 		switch n := node.(type) {
 		case types.LeafNodeInterface:
 			if n.Key() == key {
@@ -92,12 +92,12 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					return nil, fmt.Errorf("failed to load value: %w", err)
 				}
 				proof.Value = value
-				
+
 				// Record metrics for inclusion proof
 				duration := time.Since(start).Seconds()
 				proofSize := proof.EstimateSize()
 				metrics.RecordProofGeneration(duration, "inclusion", proofSize)
-				
+
 				return proof, nil
 			} else {
 				// Neighbor exclusion proof
@@ -108,49 +108,49 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					Path:         pathTaken,
 					DivergeDepth: depth,
 				}
-				
+
 				// Record metrics for exclusion proof
 				duration := time.Since(start).Seconds()
 				proofSize := proof.EstimateSize()
 				metrics.RecordProofGeneration(duration, "exclusion", proofSize)
-				
+
 				return proof, nil
 			}
-			
+
 		case types.InternalNodeInterface:
 			nibble := nibblePath.Nibbles[depth]
 			pathTaken = append(pathTaken, nibble)
-			
+
 			// Collect sibling data for this level
 			siblingData := SiblingData{
 				Depth:    depth,
 				Nibble:   nibble,
 				Children: make(map[types.Nibble]types.Hash),
 			}
-			
+
 			// Collect all children hashes (needed for verification)
 			for nib := types.Nibble(0); nib <= types.MaxNibbleValue; nib++ {
 				if child, exists := n.Child(nib); exists {
 					siblingData.Children[nib] = child.Hash
 				}
 			}
-			
+
 			proof.Siblings = append(proof.Siblings, siblingData)
-			
+
 			// Check if child exists
 			child, exists := n.Child(nibble)
 			if !exists {
 				// Empty exclusion proof
 				proof.Type = ProofTypeExclusionEmpty
-				
+
 				// Record metrics for exclusion proof
 				duration := time.Since(start).Seconds()
 				proofSize := proof.EstimateSize()
 				metrics.RecordProofGeneration(duration, "exclusion", proofSize)
-				
+
 				return proof, nil
 			}
-			
+
 			// Continue to child
 			nodeKey = types.NodeKey{
 				Version: child.Version,
@@ -159,12 +159,12 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					Length:  uint16(depth + 1),
 				},
 			}
-			
+
 		default:
 			return nil, fmt.Errorf("unknown node type: %T", node)
 		}
 	}
-	
+
 	// After processing 64 levels, check if we have a leaf at depth 64
 	// This handles the edge case where keys differ only in the last nibble
 	node, err := g.reader.GetNode(nodeKey)
@@ -172,7 +172,7 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 		metrics.RecordError("storage")
 		return nil, fmt.Errorf("failed to load node at depth 64: %w", err)
 	}
-	
+
 	if node != nil {
 		if leaf, ok := node.(types.LeafNodeInterface); ok {
 			if leaf.Key() == key {
@@ -184,12 +184,12 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					return nil, fmt.Errorf("failed to load value: %w", err)
 				}
 				proof.Value = value
-				
+
 				// Record metrics for inclusion proof
 				duration := time.Since(start).Seconds()
 				proofSize := proof.EstimateSize()
 				metrics.RecordProofGeneration(duration, "inclusion", proofSize)
-				
+
 				return proof, nil
 			} else {
 				// Neighbor exclusion at maximum depth
@@ -200,17 +200,17 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 					Path:         pathTaken,
 					DivergeDepth: types.MaxTreeDepth,
 				}
-				
+
 				// Record metrics for exclusion proof
 				duration := time.Since(start).Seconds()
 				proofSize := proof.EstimateSize()
 				metrics.RecordProofGeneration(duration, "exclusion", proofSize)
-				
+
 				return proof, nil
 			}
 		}
 	}
-	
+
 	// If we get here, something is wrong
 	metrics.RecordError("tree_structure")
 	return nil, fmt.Errorf("proof generation failed: unexpected tree structure")
@@ -219,7 +219,7 @@ func (g *Generator) Generate(key types.Key) (*Proof, error) {
 // GenerateBatch generates proofs for multiple keys efficiently
 func (g *Generator) GenerateBatch(keys []types.Key) ([]*Proof, error) {
 	proofs := make([]*Proof, len(keys))
-	
+
 	// TODO: Optimize by sharing common path traversals
 	for i, key := range keys {
 		proof, err := g.Generate(key)
@@ -228,6 +228,6 @@ func (g *Generator) GenerateBatch(keys []types.Key) ([]*Proof, error) {
 		}
 		proofs[i] = proof
 	}
-	
+
 	return proofs, nil
 }

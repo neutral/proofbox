@@ -140,7 +140,7 @@ func TestCLIBasicOperations(t *testing.T) {
 		var result map[string]interface{}
 		err = json.Unmarshal([]byte(output), &result)
 		require.NoError(t, err)
-		
+
 		tree := result["tree"].(map[string]interface{})
 		assert.Equal(t, float64(2), tree["latest"])
 		assert.NotEmpty(t, tree["root_hash"])
@@ -171,7 +171,7 @@ func TestCLIErrorHandling(t *testing.T) {
 	t.Run("invalid_hex_key", func(t *testing.T) {
 		tempDir := t.TempDir()
 		dbPath := filepath.Join(tempDir, "test.db")
-		
+
 		// Initialize database
 		_, err := runCLI("init", "--db", dbPath)
 		require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestCLIExitCodes(t *testing.T) {
 		cmd := exec.Command("./pb_test", "get", "test", "--db", "nonexistent.db")
 		err := cmd.Run()
 		assert.Error(t, err, "Expected non-zero exit code")
-		
+
 		exitError, ok := err.(*exec.ExitError)
 		assert.True(t, ok, "Expected ExitError")
 		assert.NotEqual(t, 0, exitError.ExitCode(), "Expected non-zero exit code")

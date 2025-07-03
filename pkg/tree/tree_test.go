@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/neutral/proofbox/pkg/metrics"
-	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/storage"
 	"github.com/neutral/proofbox/pkg/storage/memory"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -172,7 +172,7 @@ func TestNodeCache(t *testing.T) {
 
 	// Test cache clear
 	cache.Clear()
-	hits, misses, size = cache.Stats()
+	_, _, size = cache.Stats()
 	assert.Equal(t, 0, size)
 }
 

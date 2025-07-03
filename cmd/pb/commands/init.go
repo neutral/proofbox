@@ -52,7 +52,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create pebble storage: %w", err)
 		}
-		
+
 		// Set appropriate directory permissions (owner read/write/execute only)
 		// This helps protect the database from unauthorized access
 		// Note: directories need execute permission to be accessible
@@ -82,7 +82,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	keyEncoder := storage.NewDefaultKeyEncoder()
 	config := tree.DefaultTreeConfig()
 	config.MetricsEnabled = false
-	
+
 	_, err = tree.NewTree(store, keyEncoder, config)
 	if err != nil {
 		return fmt.Errorf("failed to initialize tree: %w", err)

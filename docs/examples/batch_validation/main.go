@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/neutral/proofbox/docs/examples/utils"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/neutral/proofbox/docs/examples/utils"
 
 	"github.com/neutral/proofbox/pkg/tree"
 	"github.com/neutral/proofbox/pkg/types"
@@ -193,7 +194,7 @@ func main() {
 			break
 		}
 
-		if (i+1) % 200 == 0 {
+		if (i+1)%200 == 0 {
 			fmt.Printf("  %sAdded %d/%d operations...%s\r", utils.ColorGray, i+1, numOps, utils.ColorReset)
 		}
 	}

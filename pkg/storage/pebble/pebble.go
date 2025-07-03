@@ -15,21 +15,21 @@ type Storage struct {
 	db *pebble.DB
 
 	// Metrics tracking
-	metrics *storage.MetricsCollector
+	metrics     *storage.MetricsCollector
 	stopMetrics chan struct{}
 	metricsWG   sync.WaitGroup
 
 	// Resource management
-	refCount      int32  // Active resources (iterators, snapshots, batches)
-	closing       int32  // Atomic closing flag
+	refCount      int32          // Active resources (iterators, snapshots, batches)
+	closing       int32          // Atomic closing flag
 	resourceWG    sync.WaitGroup // Wait for all resources
-	openIterators int32  // Current open iterators
-	openSnapshots int32  // Current open snapshots
+	openIterators int32          // Current open iterators
+	openSnapshots int32          // Current open snapshots
 
 	// Configuration
-	keyEncoder    storage.KeyEncoder
-	maxIterators  int32
-	maxSnapshots  int32
+	keyEncoder   storage.KeyEncoder
+	maxIterators int32
+	maxSnapshots int32
 }
 
 // Options configures the PebbleDB storage.
@@ -78,7 +78,7 @@ func NewStorage(path string, opts *Options) (*Storage, error) {
 	if pebbleOpts == nil {
 		pebbleOpts = &pebble.Options{}
 	}
-	
+
 	db, err := pebble.Open(path, pebbleOpts)
 	if err != nil {
 		return nil, err
@@ -303,7 +303,7 @@ func (s *Storage) Close() error {
 	openRefs := atomic.LoadInt32(&s.refCount)
 	if openIters > 0 || openSnaps > 0 || openRefs > 0 {
 		// This indicates a bug in our reference counting
-		fmt.Printf("ERROR: Storage closed with %d iterators, %d snapshots, %d refs\n", 
+		fmt.Printf("ERROR: Storage closed with %d iterators, %d snapshots, %d refs\n",
 			openIters, openSnaps, openRefs)
 	}
 
@@ -319,7 +319,7 @@ func (s *Storage) Close() error {
 // updateDatabaseMetrics periodically updates database size metrics.
 func (s *Storage) updateDatabaseMetrics() {
 	defer s.metricsWG.Done()
-	
+
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -332,7 +332,7 @@ func (s *Storage) updateDatabaseMetrics() {
 			if atomic.LoadInt32(&s.closing) != 0 {
 				return
 			}
-			
+
 			// Get metrics from database
 			// This is safe because Close() waits for us to finish
 			if s.db != nil {
@@ -456,15 +456,15 @@ type errorIterator struct {
 
 func (e *errorIterator) SeekGE(key []byte) bool { return false }
 func (e *errorIterator) SeekLT(key []byte) bool { return false }
-func (e *errorIterator) First() bool             { return false }
-func (e *errorIterator) Last() bool              { return false }
-func (e *errorIterator) Next() bool              { return false }
-func (e *errorIterator) Prev() bool              { return false }
-func (e *errorIterator) Valid() bool             { return false }
-func (e *errorIterator) Key() []byte             { return nil }
-func (e *errorIterator) Value() []byte           { return nil }
-func (e *errorIterator) Error() error            { return e.err }
-func (e *errorIterator) Close() error            { return nil }
+func (e *errorIterator) First() bool            { return false }
+func (e *errorIterator) Last() bool             { return false }
+func (e *errorIterator) Next() bool             { return false }
+func (e *errorIterator) Prev() bool             { return false }
+func (e *errorIterator) Valid() bool            { return false }
+func (e *errorIterator) Key() []byte            { return nil }
+func (e *errorIterator) Value() []byte          { return nil }
+func (e *errorIterator) Error() error           { return e.err }
+func (e *errorIterator) Close() error           { return nil }
 
 // snapshot implements storage.Snapshot using PebbleDB snapshot.
 type snapshot struct {
@@ -555,14 +555,14 @@ type snapshotIterator struct {
 
 func (i *snapshotIterator) SeekGE(key []byte) bool { return i.iter.SeekGE(key) }
 func (i *snapshotIterator) SeekLT(key []byte) bool { return i.iter.SeekLT(key) }
-func (i *snapshotIterator) First() bool             { return i.iter.First() }
-func (i *snapshotIterator) Last() bool              { return i.iter.Last() }
-func (i *snapshotIterator) Next() bool              { return i.iter.Next() }
-func (i *snapshotIterator) Prev() bool              { return i.iter.Prev() }
-func (i *snapshotIterator) Valid() bool             { return i.iter.Valid() }
-func (i *snapshotIterator) Key() []byte             { return i.iter.Key() }
-func (i *snapshotIterator) Value() []byte           { return i.iter.Value() }
-func (i *snapshotIterator) Error() error            { return i.iter.Error() }
+func (i *snapshotIterator) First() bool            { return i.iter.First() }
+func (i *snapshotIterator) Last() bool             { return i.iter.Last() }
+func (i *snapshotIterator) Next() bool             { return i.iter.Next() }
+func (i *snapshotIterator) Prev() bool             { return i.iter.Prev() }
+func (i *snapshotIterator) Valid() bool            { return i.iter.Valid() }
+func (i *snapshotIterator) Key() []byte            { return i.iter.Key() }
+func (i *snapshotIterator) Value() []byte          { return i.iter.Value() }
+func (i *snapshotIterator) Error() error           { return i.iter.Error() }
 
 func (i *snapshotIterator) Close() error {
 	if atomic.CompareAndSwapInt32(&i.closed, 0, 1) {
@@ -579,10 +579,10 @@ type errorBatch struct {
 	err error
 }
 
-func (e *errorBatch) Put(key, value []byte) error { return e.err }
-func (e *errorBatch) Delete(key []byte) error     { return e.err }
+func (e *errorBatch) Put(key, value []byte) error             { return e.err }
+func (e *errorBatch) Delete(key []byte) error                 { return e.err }
 func (e *errorBatch) Commit(opts storage.CommitOptions) error { return e.err }
-func (e *errorBatch) Close() error                { return nil }
+func (e *errorBatch) Close() error                            { return nil }
 
 // errorSnapshot is returned when snapshot creation fails
 type errorSnapshot struct {
@@ -618,4 +618,3 @@ func prefixUpperBound(prefix []byte) []byte {
 	// All bytes are 0xFF, return nil to indicate no upper bound
 	return nil
 }
-

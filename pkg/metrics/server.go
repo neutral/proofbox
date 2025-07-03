@@ -12,8 +12,8 @@ import (
 
 // MetricsServer provides an HTTP server for exposing Prometheus metrics
 type MetricsServer struct {
-	server   *http.Server
-	enabled  bool
+	server    *http.Server
+	enabled   bool
 	collector *Collector
 }
 
@@ -25,11 +25,11 @@ func NewMetricsServer(addr string, collector *Collector) *MetricsServer {
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	
+
 	// Add health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	server := &http.Server{
@@ -96,7 +96,7 @@ func ServeMetricsHTTP(addr string, metricsEnabled bool) error {
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	log.Printf("Serving metrics on http://%s/metrics", addr)

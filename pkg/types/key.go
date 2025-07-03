@@ -84,7 +84,14 @@ func (k Key) ExtractNibble(depth int) (Nibble, error) {
 func (k Key) ToNibblePath() NibblePath {
 	nibbles := make([]Nibble, MaxTreeDepth)
 	for i := 0; i < MaxTreeDepth; i++ {
-		nibbles[i], _ = k.ExtractNibble(i)
+		// ExtractNibble should never error here as we're iterating
+		// within the valid range [0, MaxTreeDepth)
+		nibble, err := k.ExtractNibble(i)
+		if err != nil {
+			// This should never happen, but handle it gracefully
+			panic(fmt.Sprintf("ExtractNibble failed for valid depth %d: %v", i, err))
+		}
+		nibbles[i] = nibble
 	}
 	return NibblePath{
 		Nibbles: nibbles,

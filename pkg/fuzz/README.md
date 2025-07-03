@@ -34,13 +34,11 @@ pkg/fuzz/
 
 ### Invariants (`invariants/`)
 - `version_isolation.go`: Version isolation property checking
-- `structural_sharing.go`: Verifies node sharing across versions
 - `proof_consistency.go`: Ensures proof generation/verification consistency
 
 ### Properties (`properties/`)
 - `version_isolation_test.go`: Version isolation properties
 - `state_machine_test.go`: State machine modeling
-- `structural_sharing_test.go`: Structural sharing verification
 - `proof_consistency_test.go`: Proof consistency checks
 - `concurrent_test.go`: Concurrent operation safety
 
@@ -100,7 +98,6 @@ The fuzzing infrastructure tests:
 
 ### Correctness Properties
 - Version isolation (keys visible only in appropriate versions)
-- Structural sharing (unchanged subtrees share nodes)
 - Proof consistency (proofs verify correctly across versions)
 - Differential correctness (matches reference implementation)
 

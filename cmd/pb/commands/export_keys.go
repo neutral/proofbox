@@ -79,7 +79,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 	}
 
 	// Use latest version if not specified
-	if cmd.Flags().Changed("version") == false {
+	if !cmd.Flags().Changed("version") {
 		version = uint64(tree.GetLatestVersion())
 	}
 
@@ -98,7 +98,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 		if err := validatePath(keysFile); err != nil {
 			return fmt.Errorf("invalid keys file path: %w", err)
 		}
-		
+
 		file, err := os.Open(keysFile)
 		if err != nil {
 			return fmt.Errorf("failed to open keys file: %w", err)
@@ -131,7 +131,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 
 	for _, keyStr := range keys {
 		var key types.Key
-		
+
 		// Parse key based on format
 		if keysFormat == "hex" {
 			keyBytes, err := hex.DecodeString(keyStr)
@@ -185,7 +185,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 		if err := validatePath(exportOutput); err != nil {
 			return fmt.Errorf("invalid export file path: %w", err)
 		}
-		
+
 		file, err := os.Create(exportOutput)
 		if err != nil {
 			return fmt.Errorf("failed to create output file: %w", err)
@@ -242,7 +242,7 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 	// Report completion
 	if !jsonOutput && exportOutput != "" && exportOutput != "-" {
 		duration := time.Since(startTime)
-		fmt.Printf("Exported %d entries (of %d requested) to %s in %v\n", 
+		fmt.Printf("Exported %d entries (of %d requested) to %s in %v\n",
 			len(entries), len(keys), exportOutput, duration)
 		if notFound > 0 {
 			fmt.Printf("Keys not found: %d\n", notFound)
@@ -251,13 +251,13 @@ func runExportKeys(cmd *cobra.Command, args []string) error {
 
 	if jsonOutput && exportOutput != "" && exportOutput != "-" {
 		result := map[string]interface{}{
-			"status":       "success",
-			"requested":    len(keys),
-			"exported":     len(entries),
-			"not_found":    notFound,
-			"version":      version,
-			"output_file":  exportOutput,
-			"duration":     time.Since(startTime).String(),
+			"status":      "success",
+			"requested":   len(keys),
+			"exported":    len(entries),
+			"not_found":   notFound,
+			"version":     version,
+			"output_file": exportOutput,
+			"duration":    time.Since(startTime).String(),
 		}
 		return outputResult(result)
 	}

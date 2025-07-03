@@ -420,7 +420,8 @@ func BenchmarkNodeKeyDecoding(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = DecodeNodeKey(encoded)
+		decoded, _ := DecodeNodeKey(encoded)
+		_ = decoded
 	}
 }
 

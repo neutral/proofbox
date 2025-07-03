@@ -50,7 +50,7 @@ func TestBatchOperations(t *testing.T) {
 				{"type": "put", "key": "charlie", "value": "300"},
 			},
 		}
-		
+
 		data, err := json.MarshalIndent(batchData, "", "  ")
 		require.NoError(t, err)
 		err = os.WriteFile(batchFile, data, 0644)
@@ -86,7 +86,7 @@ func TestBatchOperations(t *testing.T) {
 				{"type": "put", "key": "eve", "value": "500"},
 			},
 		}
-		
+
 		data, err := json.MarshalIndent(batchData, "", "  ")
 		require.NoError(t, err)
 		err = os.WriteFile(batchFile, data, 0644)
@@ -127,7 +127,7 @@ func TestBatchOperations(t *testing.T) {
 				{"type": "put", "key": "test2", "value": "v2"},
 			},
 		}
-		
+
 		data, err := json.MarshalIndent(batchData, "", "  ")
 		require.NoError(t, err)
 		err = os.WriteFile(batchFile, data, 0644)
@@ -159,7 +159,7 @@ func TestBatchOperations(t *testing.T) {
 				{"type": "invalid", "key": "test", "value": "v1"},
 			},
 		}
-		
+
 		data, err := json.MarshalIndent(batchData, "", "  ")
 		require.NoError(t, err)
 		err = os.WriteFile(batchFile, data, 0644)
@@ -179,7 +179,7 @@ func TestBatchOperations(t *testing.T) {
 				{"type": "put", "key": "v2", "value": "200"},
 			},
 		}
-		
+
 		data, err := json.MarshalIndent(batchData, "", "  ")
 		require.NoError(t, err)
 		err = os.WriteFile(batchFile, data, 0644)
@@ -195,11 +195,13 @@ func TestBatchOperations(t *testing.T) {
 
 		// In verbose mode, we should get operation_results
 		assert.Contains(t, result, "operation_results")
-		opResults := result["operation_results"].([]interface{})
+		opResults, ok := result["operation_results"].([]interface{})
+		require.True(t, ok, "operation_results should be a slice")
 		assert.Equal(t, 2, len(opResults))
-		
+
 		// Check first operation
-		op1 := opResults[0].(map[string]interface{})
+		op1, ok := opResults[0].(map[string]interface{})
+		require.True(t, ok, "operation result should be a map")
 		assert.Equal(t, float64(0), op1["index"])
 		assert.Equal(t, "put", op1["type"])
 		assert.Equal(t, "v1", op1["key"])
@@ -250,7 +252,7 @@ func TestLargeBatch(t *testing.T) {
 	batchData := map[string]interface{}{
 		"operations": operations,
 	}
-	
+
 	data, err := json.MarshalIndent(batchData, "", "  ")
 	require.NoError(t, err)
 	err = os.WriteFile(batchFile, data, 0644)

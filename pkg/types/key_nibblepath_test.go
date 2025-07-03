@@ -70,7 +70,7 @@ func TestGetNibble(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		nibble, err := path.GetNibble(i)
 		assert.NoError(t, err)
-		assert.Equal(t, Nibble(i+1), nibble)
+		assert.Equal(t, Nibble(uint8(i+1)), nibble)
 	}
 
 	// Invalid indices
@@ -157,8 +157,10 @@ func TestEquals(t *testing.T) {
 			assert.Equal(t, tc.expected, result)
 
 			// Test reflexivity
-			assert.True(t, tc.path1.Equals(tc.path1))
-			assert.True(t, tc.path2.Equals(tc.path2))
+			path1Copy := tc.path1
+			path2Copy := tc.path2
+			assert.True(t, tc.path1.Equals(path1Copy))
+			assert.True(t, tc.path2.Equals(path2Copy))
 
 			// Test symmetry
 			assert.Equal(t, result, tc.path2.Equals(tc.path1))
@@ -376,7 +378,9 @@ func BenchmarkNibblePathConversion(b *testing.B) {
 		path := key.ToNibblePath()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, _ = path.ToBytes()
+			// Ignore error in benchmark - path has even length from ToNibblePath
+			bytes, _ := path.ToBytes()
+			_ = bytes
 		}
 	})
 }

@@ -22,11 +22,11 @@ func TestMetricsValidation(t *testing.T) {
 	// Create storage and tree with metrics
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	
+
 	config := DefaultTreeConfig()
 	config.MetricsEnabled = true
 	config.Metrics = metricsCollector
-	
+
 	tree, err := NewTree(store, keyEncoder, config)
 	require.NoError(t, err)
 
@@ -58,7 +58,7 @@ func TestMetricsValidation(t *testing.T) {
 		key1 := types.KeyHash([]byte("lookup-key-1"))
 		key2 := types.KeyHash([]byte("lookup-key-2"))
 		value := []byte("test-value")
-		
+
 		version, err := tree.Put(key1, value)
 		require.NoError(t, err)
 
@@ -71,14 +71,14 @@ func TestMetricsValidation(t *testing.T) {
 		// Perform lookups
 		numHits := 3
 		numMisses := 2
-		
+
 		// Hits
 		for i := 0; i < numHits; i++ {
 			val, err := tree.Get(version, key1)
 			require.NoError(t, err)
 			assert.NotNil(t, val)
 		}
-		
+
 		// Misses
 		for i := 0; i < numMisses; i++ {
 			val, err := tree.Get(version, key2)
@@ -109,7 +109,7 @@ func TestMetricsValidation(t *testing.T) {
 
 		// Create batch with mixed operations
 		batch := tree.NewBatchTransaction()
-		
+
 		// Inserts
 		numOps := 3
 		for i := 0; i < numOps; i++ {
@@ -117,7 +117,7 @@ func TestMetricsValidation(t *testing.T) {
 			value := []byte{byte(i)}
 			require.NoError(t, batch.BatchPut(key, value))
 		}
-		
+
 		// Execute batch
 		_, err = batch.Execute()
 		require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestMetricsValidation(t *testing.T) {
 		// Perform operations that trigger DB reads/writes
 		key := types.KeyHash([]byte("db-test-key"))
 		value := []byte("db-test-value")
-		
+
 		// Put triggers writes
 		version, err := tree.Put(key, value)
 		require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestMetricsValidation(t *testing.T) {
 
 		dbReads := getMetricValue(t, metricFamilies, "jmt_db_reads_total")
 		dbWrites := getMetricValue(t, metricFamilies, "jmt_db_writes_total")
-		
+
 		assert.Greater(t, dbReads, float64(0), "Should have DB reads")
 		assert.Greater(t, dbWrites, float64(0), "Should have DB writes")
 	})
@@ -175,15 +175,15 @@ func TestMetricsValidation(t *testing.T) {
 		tree.metrics = metricsCollector
 
 		// Trigger various errors
-		
+
 		// Validation error - empty key
 		_, err = tree.Put(types.Key{}, []byte("value"))
 		assert.Error(t, err)
-		
+
 		// Version error - non-existent version
 		_, err = tree.Get(9999, types.KeyHash([]byte("key")))
 		assert.Error(t, err)
-		
+
 		// Value too large error
 		largeValue := make([]byte, types.MaxValueSize+1)
 		_, err = tree.Put(types.KeyHash([]byte("key")), largeValue)
@@ -195,7 +195,7 @@ func TestMetricsValidation(t *testing.T) {
 
 		validationErrors := getMetricValueWithLabel(t, metricFamilies, "jmt_errors_total", "type", "validation")
 		versionErrors := getMetricValueWithLabel(t, metricFamilies, "jmt_errors_total", "type", "version")
-		
+
 		assert.GreaterOrEqual(t, validationErrors, float64(2), "Should have at least 2 validation errors")
 		assert.GreaterOrEqual(t, versionErrors, float64(1), "Should have at least 1 version error")
 	})
@@ -236,10 +236,10 @@ func TestMetricsValidation(t *testing.T) {
 
 		nodeCount := getMetricValue(t, metricFamilies, "jmt_tree_nodes_total")
 		versionCount := getMetricValue(t, metricFamilies, "jmt_versions_stored")
-		
+
 		assert.Greater(t, nodeCount, float64(0), "Should have nodes in tree")
 		assert.Greater(t, versionCount, float64(0), "Should have versions stored")
-		
+
 		// Version count should match latest version
 		latestVersion := tree.GetLatestVersion()
 		assert.LessOrEqual(t, versionCount, float64(latestVersion), "Version count should not exceed latest version")
@@ -254,7 +254,7 @@ func TestMetricsValidation(t *testing.T) {
 
 		// Create batches of different sizes
 		batchSizes := []int{1, 5, 10}
-		
+
 		for _, size := range batchSizes {
 			batch := tree.NewBatchTransaction()
 			for i := 0; i < size; i++ {
@@ -291,11 +291,11 @@ func TestMetricsConcurrentAccuracy(t *testing.T) {
 
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	
+
 	config := DefaultTreeConfig()
 	config.MetricsEnabled = true
 	config.Metrics = metricsCollector
-	
+
 	tree, err := NewTree(store, keyEncoder, config)
 	require.NoError(t, err)
 
@@ -328,7 +328,7 @@ func TestMetricsConcurrentAccuracy(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedOps := float64(numGoroutines * opsPerGoroutine)
-	
+
 	// Check commits
 	commitsTotal := getMetricValue(t, metricFamilies, "jmt_commits_total")
 	assert.Equal(t, expectedOps, commitsTotal, "Should have correct total commits under concurrent load")
@@ -345,11 +345,11 @@ func TestMetricsLatencyAccuracy(t *testing.T) {
 
 	store := createTestStorage(t)
 	keyEncoder := storage.NewDefaultKeyEncoder()
-	
+
 	config := DefaultTreeConfig()
 	config.MetricsEnabled = true
 	config.Metrics = metricsCollector
-	
+
 	tree, err := NewTree(store, keyEncoder, config)
 	require.NoError(t, err)
 
@@ -357,10 +357,10 @@ func TestMetricsLatencyAccuracy(t *testing.T) {
 	start := time.Now()
 	key := types.KeyHash([]byte("latency-test"))
 	value := []byte("test-value")
-	
+
 	_, err = tree.Put(key, value)
 	require.NoError(t, err)
-	
+
 	elapsed := time.Since(start)
 
 	// Get metrics
@@ -369,11 +369,11 @@ func TestMetricsLatencyAccuracy(t *testing.T) {
 
 	// Check commit latency
 	commitLatencySum := getHistogramSum(t, metricFamilies, "jmt_commit_latency_seconds")
-	
+
 	// Latency should be positive but less than total elapsed time
 	assert.Greater(t, commitLatencySum, float64(0), "Commit latency should be positive")
 	assert.LessOrEqual(t, commitLatencySum, elapsed.Seconds(), "Commit latency should not exceed total time")
-	
+
 	// Latency should be reasonable (less than 1 second for in-memory operation)
 	assert.Less(t, commitLatencySum, 1.0, "Commit latency should be reasonable for in-memory operation")
 }

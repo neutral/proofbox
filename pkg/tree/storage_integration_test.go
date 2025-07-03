@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/neutral/proofbox/pkg/storage"
@@ -41,7 +42,7 @@ func TestStorageIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
-	if string(retrieved) != string(value) {
+	if !bytes.Equal(retrieved, value) {
 		t.Fatalf("Get returned wrong value: got %s, want %s", retrieved, value)
 	}
 
@@ -60,7 +61,7 @@ func TestStorageIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get after update failed: %v", err)
 	}
-	if string(retrieved2) != string(newValue) {
+	if !bytes.Equal(retrieved2, newValue) {
 		t.Fatalf("Get returned wrong value after update: got %s, want %s", retrieved2, newValue)
 	}
 
@@ -69,7 +70,7 @@ func TestStorageIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get old version failed: %v", err)
 	}
-	if string(retrievedOld) != string(value) {
+	if !bytes.Equal(retrievedOld, value) {
 		t.Fatalf("Old version returned wrong value: got %s, want %s", retrievedOld, value)
 	}
 }
@@ -105,11 +106,11 @@ func TestBatchWithStorage(t *testing.T) {
 
 	// Verify all keys
 	for i := 1; i <= 3; i++ {
-		val, err := tree.Get(version, types.KeyHash([]byte("key" + string(rune('0' + i)))))
+		val, err := tree.Get(version, types.KeyHash([]byte("key"+string(rune('0'+i)))))
 		if err != nil {
 			t.Fatalf("Get key%d failed: %v", i, err)
 		}
-		if string(val) != "value" + string(rune('0' + i)) {
+		if string(val) != "value"+string(rune('0'+i)) {
 			t.Fatalf("Wrong value for key%d: got %s, want value%d", i, val, i)
 		}
 	}

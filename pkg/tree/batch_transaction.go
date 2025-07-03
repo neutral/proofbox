@@ -170,10 +170,13 @@ func (bt *BatchTransaction) Execute() (types.Version, error) {
 			// For now, treat all puts as inserts
 			// TODO: Track insert vs update during tree update operation
 			opCounts["insert"]++
-			
+
 			if err := bt.tree.PutVersioned(version, op.Key, op.Value); err != nil {
 				// Abort on error
-				bt.tree.AbortVersion(version)
+				if abortErr := bt.tree.AbortVersion(version); abortErr != nil {
+					// Log but don't mask original error
+					bt.tree.metrics.RecordError("abort")
+				}
 				bt.tree.metrics.RecordError("batch")
 				return 0, fmt.Errorf("operation %d (put) failed: %w", i, err)
 			}
@@ -181,7 +184,10 @@ func (bt *BatchTransaction) Execute() (types.Version, error) {
 			opCounts["delete"]++
 			if err := bt.tree.DeleteVersioned(version, op.Key); err != nil {
 				// Abort on error
-				bt.tree.AbortVersion(version)
+				if abortErr := bt.tree.AbortVersion(version); abortErr != nil {
+					// Log but don't mask original error
+					bt.tree.metrics.RecordError("abort")
+				}
 				bt.tree.metrics.RecordError("batch")
 				return 0, fmt.Errorf("operation %d (delete) failed: %w", i, err)
 			}

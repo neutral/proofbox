@@ -18,7 +18,7 @@ type KeyEncoder interface {
 
 	// Value storage keys (content-addressed)
 	ValueKey(hash types.Hash) []byte
-	
+
 	// Value storage keys (key-addressed, for future use)
 	ValueKeyByKey(key types.Key) []byte
 

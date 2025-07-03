@@ -13,19 +13,19 @@ import (
 // Storage implements storage.Storage using an in-memory map.
 // This is useful for testing and development.
 type Storage struct {
-	mu       sync.RWMutex
-	data     map[string][]byte
-	
+	mu   sync.RWMutex
+	data map[string][]byte
+
 	// Resource management
-	refCount      int32  // Active resources
-	closing       int32  // Atomic closing flag
+	refCount      int32 // Active resources
+	closing       int32 // Atomic closing flag
 	resourceWG    sync.WaitGroup
 	openIterators int32
 	openSnapshots int32
 	maxIterators  int32
 	maxSnapshots  int32
-	
-	metrics  storage.Metrics
+
+	metrics storage.Metrics
 }
 
 // Options configures memory storage.
@@ -302,7 +302,7 @@ const (
 func (b *batch) Put(key, value []byte) error {
 	valueCopy := make([]byte, len(value))
 	copy(valueCopy, value)
-	
+
 	b.ops = append(b.ops, batchOp{
 		typ:   opPut,
 		key:   string(key),
@@ -361,10 +361,10 @@ func (b *batch) Close() error {
 // iterator implements storage.Iterator for memory storage.
 type iterator struct {
 	storage *Storage
-	data    map[string][]byte  // snapshot of data
+	data    map[string][]byte // snapshot of data
 	keys    []string
 	index   int
-	closed  int32  // Atomic
+	closed  int32 // Atomic
 }
 
 func (i *iterator) SeekGE(key []byte) bool {
@@ -457,7 +457,7 @@ func (i *iterator) Error() error {
 func (i *iterator) Close() error {
 	if atomic.CompareAndSwapInt32(&i.closed, 0, 1) {
 		i.keys = nil
-		i.data = nil  // Clear data reference to prevent memory leak
+		i.data = nil // Clear data reference to prevent memory leak
 		i.index = -1
 		atomic.AddInt32(&i.storage.openIterators, -1)
 		i.storage.releaseRef()
@@ -642,14 +642,14 @@ func (i *snapshotIterator) Value() []byte {
 }
 
 func (i *snapshotIterator) Error() error { return nil }
-func (i *snapshotIterator) Close() error { 
+func (i *snapshotIterator) Close() error {
 	if atomic.CompareAndSwapInt32(&i.closed, 0, 1) {
 		i.keys = nil
 		if i.snapshot.storage != nil {
 			atomic.AddInt32(&i.snapshot.storage.openIterators, -1)
 		}
 	}
-	return nil 
+	return nil
 }
 
 // errorBatch is returned when batch creation fails
@@ -657,10 +657,10 @@ type errorBatch struct {
 	err error
 }
 
-func (e *errorBatch) Put(key, value []byte) error { return e.err }
-func (e *errorBatch) Delete(key []byte) error     { return e.err }
+func (e *errorBatch) Put(key, value []byte) error             { return e.err }
+func (e *errorBatch) Delete(key []byte) error                 { return e.err }
 func (e *errorBatch) Commit(opts storage.CommitOptions) error { return e.err }
-func (e *errorBatch) Close() error                { return nil }
+func (e *errorBatch) Close() error                            { return nil }
 
 // errorSnapshot is returned when snapshot creation fails
 type errorSnapshot struct {
@@ -680,13 +680,12 @@ type errorIterator struct {
 
 func (e *errorIterator) SeekGE(key []byte) bool { return false }
 func (e *errorIterator) SeekLT(key []byte) bool { return false }
-func (e *errorIterator) First() bool             { return false }
-func (e *errorIterator) Last() bool              { return false }
-func (e *errorIterator) Next() bool              { return false }
-func (e *errorIterator) Prev() bool              { return false }
-func (e *errorIterator) Valid() bool             { return false }
-func (e *errorIterator) Key() []byte             { return nil }
-func (e *errorIterator) Value() []byte           { return nil }
-func (e *errorIterator) Error() error            { return e.err }
-func (e *errorIterator) Close() error            { return nil }
-
+func (e *errorIterator) First() bool            { return false }
+func (e *errorIterator) Last() bool             { return false }
+func (e *errorIterator) Next() bool             { return false }
+func (e *errorIterator) Prev() bool             { return false }
+func (e *errorIterator) Valid() bool            { return false }
+func (e *errorIterator) Key() []byte            { return nil }
+func (e *errorIterator) Value() []byte          { return nil }
+func (e *errorIterator) Error() error           { return e.err }
+func (e *errorIterator) Close() error           { return nil }

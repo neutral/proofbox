@@ -31,8 +31,8 @@ func TestRunPut(t *testing.T) {
 		validate  func(t *testing.T)
 	}{
 		{
-			name: "basic put",
-			args: []string{"put", "testkey", "testvalue", "--db", dbPath, "--json"},
+			name:    "basic put",
+			args:    []string{"put", "testkey", "testvalue", "--db", dbPath, "--json"},
 			wantErr: false,
 			validate: func(t *testing.T) {
 				// Verify the key was stored
@@ -43,20 +43,20 @@ func TestRunPut(t *testing.T) {
 		},
 		{
 			name: "put with hex key",
-			args: []string{"put", 
-				"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", 
-				"hexvalue", 
+			args: []string{"put",
+				"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+				"hexvalue",
 				"--hex-key", "--db", dbPath, "--json"},
 			wantErr: false,
 		},
 		{
-			name: "put with invalid hex key",
-			args: []string{"put", "notahexkey", "value", "--hex-key", "--db", dbPath},
+			name:    "put with invalid hex key",
+			args:    []string{"put", "notahexkey", "value", "--hex-key", "--db", dbPath},
 			wantErr: true,
 		},
 		{
-			name: "put with wrong size hex key",
-			args: []string{"put", "0123456789abcdef", "value", "--hex-key", "--db", dbPath},
+			name:    "put with wrong size hex key",
+			args:    []string{"put", "0123456789abcdef", "value", "--hex-key", "--db", dbPath},
 			wantErr: true,
 		},
 		{
@@ -65,17 +65,17 @@ func TestRunPut(t *testing.T) {
 				tmpFile := createTempFile(t, "value.txt", "file content")
 				return tmpFile
 			},
-			args: []string{"put", "filekey", "--file-value", "", "--db", dbPath, "--json"},
+			args:    []string{"put", "filekey", "--file-value", "", "--db", dbPath, "--json"},
 			wantErr: false,
 		},
 		{
-			name: "put missing value",
-			args: []string{"put", "onlykey", "--db", dbPath},
+			name:    "put missing value",
+			args:    []string{"put", "onlykey", "--db", dbPath},
 			wantErr: true,
 		},
 		{
-			name: "put with malicious file path",
-			args: []string{"put", "key", "--file-value", "../../../etc/passwd", "--db", dbPath},
+			name:    "put with malicious file path",
+			args:    []string{"put", "key", "--file-value", "../../../etc/passwd", "--db", dbPath},
 			wantErr: true,
 		},
 	}
@@ -83,7 +83,7 @@ func TestRunPut(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			args := tt.args
-			
+
 			// Setup file if needed
 			if tt.setupFile != nil {
 				filePath := tt.setupFile()

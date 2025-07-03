@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/storage"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

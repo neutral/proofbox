@@ -18,20 +18,20 @@ const (
 
 // Proof represents a Merkle proof for a key
 type Proof struct {
-	Type         ProofType          // Type of proof
-	Key          types.Key          // Key being proven
-	Value        []byte             // For inclusion proofs
-	NeighborLeaf *NeighborLeafData  // For neighbor exclusion proofs
-	Siblings     []SiblingData      // Sibling hashes along the path
-	RootHash     types.Hash         // Expected root hash
-	Version      types.Version      // Tree version
+	Type         ProofType         // Type of proof
+	Key          types.Key         // Key being proven
+	Value        []byte            // For inclusion proofs
+	NeighborLeaf *NeighborLeafData // For neighbor exclusion proofs
+	Siblings     []SiblingData     // Sibling hashes along the path
+	RootHash     types.Hash        // Expected root hash
+	Version      types.Version     // Tree version
 }
 
 // SiblingData contains sibling information at each level
 type SiblingData struct {
-	Depth    int                    // Depth in the tree (0 = root)
-	Nibble   types.Nibble           // Which nibble this is for
-	Hash     types.Hash             // Sibling hash
+	Depth    int                         // Depth in the tree (0 = root)
+	Nibble   types.Nibble                // Which nibble this is for
+	Hash     types.Hash                  // Sibling hash
 	Children map[types.Nibble]types.Hash // All children at this level for verification
 }
 
@@ -49,7 +49,7 @@ func (p *Proof) IsValid() error {
 	if err := types.ValidateKey(p.Key); err != nil {
 		return err
 	}
-	
+
 	// Check proof type specific requirements
 	switch p.Type {
 	case ProofTypeInclusion:
@@ -80,7 +80,7 @@ func (p *Proof) IsValid() error {
 	default:
 		return types.ErrInvalidProof
 	}
-	
+
 	// Validate siblings
 	for i, sib := range p.Siblings {
 		if sib.Depth < 0 || sib.Depth > types.MaxTreeDepth {
@@ -94,43 +94,43 @@ func (p *Proof) IsValid() error {
 			return types.ErrInvalidProof
 		}
 	}
-	
+
 	return nil
 }
 
 // EstimateSize estimates the serialized size of the proof in bytes
 func (p *Proof) EstimateSize() int {
 	size := 0
-	
+
 	// Fixed size fields
-	size += 1   // ProofType
-	size += 32  // Key (256-bit key)
-	size += 32  // RootHash 
-	size += 8   // Version
-	
+	size += 1  // ProofType
+	size += 32 // Key (256-bit key)
+	size += 32 // RootHash
+	size += 8  // Version
+
 	// Value (for inclusion proofs)
 	if p.Value != nil {
 		size += 4 + len(p.Value) // Length prefix + data
 	}
-	
+
 	// Neighbor data (for exclusion proofs)
 	if p.NeighborLeaf != nil {
-		size += 32               // Key
-		size += 32               // ValueHash
-		size += 4                // DivergeDepth
+		size += 32                           // Key
+		size += 32                           // ValueHash
+		size += 4                            // DivergeDepth
 		size += 4 + len(p.NeighborLeaf.Path) // Path length + data
 	}
-	
+
 	// Siblings data
 	size += 4 // Number of siblings
 	for _, sib := range p.Siblings {
-		size += 4               // Depth
-		size += 1               // Nibble
-		size += 32              // Hash
-		size += 4               // Number of children
+		size += 4                            // Depth
+		size += 1                            // Nibble
+		size += 32                           // Hash
+		size += 4                            // Number of children
 		size += len(sib.Children) * (1 + 32) // Each child: nibble + hash
 	}
-	
+
 	return size
 }
 

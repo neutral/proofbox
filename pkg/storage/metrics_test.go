@@ -164,7 +164,7 @@ func TestLatencyHistogram(t *testing.T) {
 		// Both percentiles should be around the same value
 		p50 := collector.GetLatencyP50()
 		p99 := collector.GetLatencyP99()
-		
+
 		// Should be in the appropriate bucket range
 		assert.Greater(t, p50, uint64(0))
 		assert.LessOrEqual(t, p50, uint64(500*time.Microsecond))
@@ -173,7 +173,7 @@ func TestLatencyHistogram(t *testing.T) {
 
 	t.Run("Very Large Values", func(t *testing.T) {
 		collector := storage.NewMetricsCollector()
-		
+
 		// Record some very large latencies
 		collector.RecordPut(2 * time.Second)
 		collector.RecordPut(3 * time.Second)
@@ -208,7 +208,7 @@ func BenchmarkMetricsCollection(b *testing.B) {
 
 	b.Run("GetPercentiles", func(b *testing.B) {
 		collector := storage.NewMetricsCollector()
-		
+
 		// Pre-populate with data
 		for i := 0; i < 1000; i++ {
 			collector.RecordGet(time.Duration(i) * time.Microsecond)

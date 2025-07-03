@@ -28,17 +28,17 @@ func init() {
 func runVerify(cmd *cobra.Command, args []string) error {
 	// Read proof file
 	proofFile := args[0]
-	
+
 	// Validate file path
 	if err := validatePath(proofFile); err != nil {
 		return fmt.Errorf("invalid proof file path: %w", err)
 	}
-	
+
 	// Check file size
 	if err := validateFileSize(proofFile, maxImportFileSize); err != nil {
 		return fmt.Errorf("proof file too large: %w", err)
 	}
-	
+
 	file, err := os.Open(proofFile)
 	if err != nil {
 		return fmt.Errorf("failed to open proof file: %w", err)
@@ -88,7 +88,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	if err == nil {
 		result["status"] = "valid"
 		result["message"] = "Proof is valid"
-		
+
 		// Add value for inclusion proofs
 		if merkleProof.Type == proof.ProofTypeInclusion {
 			result["value"] = string(merkleProof.Value)

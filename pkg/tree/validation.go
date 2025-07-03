@@ -74,21 +74,24 @@ func validateNode(reader *TreeReader, node types.Node, version types.Version,
 
 		// Validate all children
 		for nibble := types.Nibble(0); nibble <= 15; nibble++ {
-			if child, exists := n.Child(nibble); exists {
-				childPath := path.Append(nibble)
-				childKey := types.NodeKey{
-					Version:    child.Version,
-					NibblePath: childPath,
-				}
+			child, exists := n.Child(nibble)
+			if !exists {
+				continue
+			}
 
-				childNode, err := reader.loadNode(childKey)
-				if err != nil {
-					return fmt.Errorf("failed to load child at %v: %w", childPath, err)
-				}
+			childPath := path.Append(nibble)
+			childKey := types.NodeKey{
+				Version:    child.Version,
+				NibblePath: childPath,
+			}
 
-				if err := validateNode(reader, childNode, child.Version, childPath, visited); err != nil {
-					return err
-				}
+			childNode, err := reader.loadNode(childKey)
+			if err != nil {
+				return fmt.Errorf("failed to load child at %v: %w", childPath, err)
+			}
+
+			if err := validateNode(reader, childNode, child.Version, childPath, visited); err != nil {
+				return err
 			}
 		}
 	}

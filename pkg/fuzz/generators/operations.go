@@ -26,7 +26,7 @@ type Operation struct {
 func OperationGen() *rapid.Generator[Operation] {
 	return rapid.Custom(func(t *rapid.T) Operation {
 		opType := rapid.SampledFrom([]OpType{OpPut, OpGet, OpDelete}).Draw(t, "type")
-		
+
 		// Generate key - use both random and structured patterns
 		var key types.Key
 		if rapid.Bool().Draw(t, "use_structured_key") {
@@ -40,7 +40,7 @@ func OperationGen() *rapid.Generator[Operation] {
 			keyBytes := rapid.SliceOfN(rapid.Byte(), 1, 32).Draw(t, "key")
 			key = types.KeyHash(keyBytes)
 		}
-		
+
 		// Generate value (non-empty for Put operations)
 		var value []byte
 		if opType == OpPut {
@@ -48,15 +48,17 @@ func OperationGen() *rapid.Generator[Operation] {
 		} else {
 			value = rapid.SliceOfN(rapid.Byte(), 0, 1024).Draw(t, "value")
 		}
-		
-		// Generate version (0 means current version in most contexts)
-		version := rapid.Uint64().Draw(t, "version")
-		
+
+		// Generate version for GET operations
+		// For PUT/DELETE, the version is determined by the tree
+		// For GET, this specifies which version to read from
+		version := types.Version(rapid.Uint64Range(0, 100).Draw(t, "version"))
+
 		return Operation{
 			Type:    opType,
 			Key:     key,
 			Value:   value,
-			Version: types.Version(version),
+			Version: version,
 		}
 	})
 }

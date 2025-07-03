@@ -90,7 +90,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 
 	case "csv":
 		csvReader := csv.NewReader(file)
-		
+
 		// Read header
 		header, err := csvReader.Read()
 		if err != nil {
@@ -139,7 +139,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 	if validateOnly {
 		validCount := 0
 		invalidCount := 0
-		
+
 		for i, entry := range entries {
 			if err := validateImportEntry(entry); err != nil {
 				invalidCount++
@@ -152,9 +152,9 @@ func runImport(cmd *cobra.Command, args []string) error {
 		}
 
 		result := map[string]interface{}{
-			"status":         "validation_complete",
-			"total_entries":  len(entries),
-			"valid_entries":  validCount,
+			"status":          "validation_complete",
+			"total_entries":   len(entries),
+			"valid_entries":   validCount,
 			"invalid_entries": invalidCount,
 		}
 		return outputResult(result)
@@ -176,7 +176,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 	// Import entries atomically using batch transaction
 	startTime := time.Now()
 	startVersion := tree.GetLatestVersion()
-	
+
 	result := &ImportResult{
 		TotalEntries: len(entries),
 		StartVersion: startVersion,
@@ -194,7 +194,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 			result.FailedImports++
 			errorMsg := fmt.Sprintf("entry %d: validation failed: %v", i, err)
 			result.Errors = append(result.Errors, errorMsg)
-			
+
 			if !skipErrors {
 				return fmt.Errorf("import failed at entry %d: %w", i, err)
 			}
@@ -206,13 +206,13 @@ func runImport(cmd *cobra.Command, args []string) error {
 			result.FailedImports++
 			errorMsg := fmt.Sprintf("entry %d: failed to add to batch: %v", i, err)
 			result.Errors = append(result.Errors, errorMsg)
-			
+
 			if !skipErrors {
 				return fmt.Errorf("import failed at entry %d: %w", i, err)
 			}
 			continue
 		}
-		
+
 		validEntries++
 
 		// Progress reporting
@@ -231,7 +231,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 		}
 		result.SuccessfulImports = validEntries
 		result.EndVersion = version
-		
+
 		if verboseMode {
 			fmt.Fprintf(os.Stderr, "Successfully imported %d entries\n", batch.Size())
 		}

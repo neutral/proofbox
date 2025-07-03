@@ -70,7 +70,7 @@ func TestExportImport(t *testing.T) {
 
 		// Export data
 		exportFile := filepath.Join(tempDir, "export.json")
-		output, err := runCLI("export-keys", "--keys", keysFile, "--db", dbPath, 
+		_, err = runCLI("export-keys", "--keys", keysFile, "--db", dbPath,
 			"--output", exportFile, "--format", "json")
 		require.NoError(t, err)
 
@@ -96,7 +96,7 @@ func TestExportImport(t *testing.T) {
 		require.NoError(t, err)
 
 		// Import data
-		output, err = runCLI("import", exportFile, "--db", importDbPath, "--json")
+		output, err := runCLI("import", exportFile, "--db", importDbPath, "--json")
 		require.NoError(t, err)
 
 		var importResult map[string]interface{}
@@ -109,11 +109,11 @@ func TestExportImport(t *testing.T) {
 
 		// Verify imported data
 		for k, expectedValue := range testData {
-			output, err = runCLI("get", k, "--db", importDbPath, "--json")
+			getOutput, err := runCLI("get", k, "--db", importDbPath, "--json")
 			require.NoError(t, err)
 
 			var result map[string]interface{}
-			err = json.Unmarshal([]byte(output), &result)
+			err = json.Unmarshal([]byte(getOutput), &result)
 			require.NoError(t, err)
 
 			assert.Equal(t, "found", result["status"])
@@ -147,7 +147,7 @@ func TestExportImport(t *testing.T) {
 		require.NoError(t, err)
 
 		// Import CSV
-		output, err := runCLI("import", csvFile, "--db", csvImportDb, 
+		output, err := runCLI("import", csvFile, "--db", csvImportDb,
 			"--format", "csv", "--json")
 		require.NoError(t, err)
 
@@ -193,8 +193,9 @@ func TestExportImport(t *testing.T) {
 				{"key": "valid", "value": "good"},
 			},
 		}
-		data, _ := json.MarshalIndent(invalidData, "", "  ")
-		err := os.WriteFile(invalidFile, data, 0644)
+		data, err := json.MarshalIndent(invalidData, "", "  ")
+		require.NoError(t, err)
+		err = os.WriteFile(invalidFile, data, 0644)
 		require.NoError(t, err)
 
 		// Try validation only
@@ -221,8 +222,9 @@ func TestExportImport(t *testing.T) {
 				{"key": "good2", "value": "value2"},
 			},
 		}
-		data, _ := json.MarshalIndent(mixedData, "", "  ")
-		err := os.WriteFile(mixedFile, data, 0644)
+		data, err := json.MarshalIndent(mixedData, "", "  ")
+		require.NoError(t, err)
+		err = os.WriteFile(mixedFile, data, 0644)
 		require.NoError(t, err)
 
 		// Create new database

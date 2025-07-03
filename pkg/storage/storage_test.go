@@ -27,7 +27,7 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 			// Test Put and Get
 			key := []byte("test-key")
 			value := []byte("test-value")
-			
+
 			err := store.Put(key, value)
 			require.NoError(t, err)
 
@@ -54,7 +54,7 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 			defer store.Close()
 
 			batch := store.NewBatch()
-			
+
 			// Add multiple operations
 			for i := 0; i < 10; i++ {
 				key := []byte(fmt.Sprintf("batch-key-%d", i))
@@ -76,7 +76,7 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 				key := []byte(fmt.Sprintf("batch-key-%d", i))
 				got, err := store.Get(key)
 				require.NoError(t, err)
-				
+
 				if i == 5 {
 					assert.Nil(t, got, "Key 5 should be deleted")
 				} else {
@@ -118,7 +118,7 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 				for iter.Last(); iter.Valid(); iter.Prev() {
 					collected = append(collected, string(iter.Key()))
 				}
-				
+
 				// Reverse expected
 				expected := make([]string, len(keys))
 				for i, k := range keys {
@@ -160,7 +160,7 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 				// Add prefixed keys
 				prefix := []byte("prefix:")
 				for i := 0; i < 3; i++ {
-					key := append(prefix, []byte(fmt.Sprintf("%d", i))...)
+					key := append(append([]byte{}, prefix...), byte('0'+i))
 					err := store.Put(key, []byte("value"))
 					require.NoError(t, err)
 				}
@@ -247,7 +247,7 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 							errors <- err
 							return
 						}
-						
+
 						if !bytes.Equal(got, value) {
 							errors <- fmt.Errorf("value mismatch: got %s, want %s", got, value)
 							return
@@ -296,9 +296,11 @@ func testStorageImplementation(t *testing.T, name string, createStorage func(t *
 			for i := 0; i < 10; i++ {
 				key := []byte(fmt.Sprintf("metrics-key-%d", i))
 				value := []byte(fmt.Sprintf("metrics-value-%d", i))
-				
-				store.Put(key, value)
-				store.Get(key)
+
+				err := store.Put(key, value)
+				require.NoError(t, err)
+				_, err = store.Get(key)
+				require.NoError(t, err)
 			}
 
 			// For stores with real metrics (like PebbleDB with metrics enabled)
@@ -321,16 +323,16 @@ func TestPebbleStorage(t *testing.T) {
 	testStorageImplementation(t, "PebbleStorage", func(t *testing.T) storage.Storage {
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "test.db")
-		
+
 		opts := &pebble.Options{
 			EnableMetrics: true,
 		}
-		
+
 		store, err := pebble.NewStorage(dbPath, opts)
 		require.NoError(t, err)
-		
+
 		// Don't use t.Cleanup here since the defer in the test function will close it
-		
+
 		return store
 	})
 }
@@ -366,7 +368,9 @@ func benchmarkStorage(b *testing.B, name string, createStorage func(b *testing.B
 
 			for i := 0; i < 1000; i++ {
 				binary.BigEndian.PutUint64(key, uint64(i))
-				store.Put(key, value)
+				if err := store.Put(key, value); err != nil {
+					b.Fatal(err)
+				}
 			}
 
 			b.ResetTimer()
@@ -395,12 +399,14 @@ func benchmarkStorage(b *testing.B, name string, createStorage func(b *testing.B
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				batch := store.NewBatch()
-				
+
 				for j := 0; j < batchSize; j++ {
 					binary.BigEndian.PutUint64(keys[j], uint64(i*batchSize+j))
-					batch.Put(keys[j], values[j])
+					if err := batch.Put(keys[j], values[j]); err != nil {
+						b.Fatal(err)
+					}
 				}
-				
+
 				if err := batch.Commit(storage.CommitOptions{Sync: false}); err != nil {
 					b.Fatal(err)
 				}
@@ -417,7 +423,9 @@ func benchmarkStorage(b *testing.B, name string, createStorage func(b *testing.B
 			value := make([]byte, 1024)
 			for i := 0; i < 10000; i++ {
 				binary.BigEndian.PutUint64(key, uint64(i))
-				store.Put(key, value)
+				if err := store.Put(key, value); err != nil {
+					b.Fatal(err)
+				}
 			}
 
 			b.ResetTimer()
@@ -428,7 +436,7 @@ func benchmarkStorage(b *testing.B, name string, createStorage func(b *testing.B
 					count++
 				}
 				iter.Close()
-				
+
 				if count != 10000 {
 					b.Fatalf("Expected 10000 keys, got %d", count)
 				}
@@ -447,20 +455,20 @@ func BenchmarkPebbleStorage(b *testing.B) {
 	benchmarkStorage(b, "PebbleStorage", func(b *testing.B) storage.Storage {
 		tmpDir := b.TempDir()
 		dbPath := filepath.Join(tmpDir, "bench.db")
-		
+
 		opts := &pebble.Options{
 			EnableMetrics: false, // Disable for benchmarks
 		}
-		
+
 		store, err := pebble.NewStorage(dbPath, opts)
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		b.Cleanup(func() {
 			store.Close()
 		})
-		
+
 		return store
 	})
 }
@@ -469,11 +477,11 @@ func BenchmarkPebbleStorage(b *testing.B) {
 func TestMetricsCollection(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "metrics.db")
-	
+
 	opts := &pebble.Options{
 		EnableMetrics: true,
 	}
-	
+
 	store, err := pebble.NewStorage(dbPath, opts)
 	require.NoError(t, err)
 	defer store.Close()
@@ -482,13 +490,13 @@ func TestMetricsCollection(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		value := []byte(fmt.Sprintf("value-%d", i))
-		
+
 		err := store.Put(key, value)
 		require.NoError(t, err)
-		
+
 		_, err = store.Get(key)
 		require.NoError(t, err)
-		
+
 		if i%10 == 0 {
 			err = store.Delete(key)
 			require.NoError(t, err)
@@ -500,7 +508,8 @@ func TestMetricsCollection(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		key := []byte(fmt.Sprintf("batch-key-%d", i))
 		value := []byte(fmt.Sprintf("batch-value-%d", i))
-		batch.Put(key, value)
+		err := batch.Put(key, value)
+		require.NoError(t, err)
 	}
 	err = batch.Commit(storage.CommitOptions{Sync: true})
 	require.NoError(t, err)
@@ -508,7 +517,7 @@ func TestMetricsCollection(t *testing.T) {
 
 	// Check metrics
 	metrics := store.Metrics()
-	
+
 	assert.Equal(t, uint64(100), metrics.GetOperations(), "Should have 100 get operations")
 	assert.Equal(t, uint64(100), metrics.PutOperations(), "Should have 100 put operations")
 	assert.Equal(t, uint64(10), metrics.DeleteOperations(), "Should have 10 delete operations")
@@ -517,14 +526,14 @@ func TestMetricsCollection(t *testing.T) {
 	// Latencies should be non-zero for operations we performed
 	assert.Greater(t, metrics.GetLatencyP50(), uint64(0), "Get P50 latency should be > 0")
 	assert.Greater(t, metrics.PutLatencyP50(), uint64(0), "Put P50 latency should be > 0")
-	
+
 	// P99 should be >= P50
 	assert.GreaterOrEqual(t, metrics.GetLatencyP99(), metrics.GetLatencyP50())
 	assert.GreaterOrEqual(t, metrics.PutLatencyP99(), metrics.PutLatencyP50())
 
 	// Wait a bit for background metrics update
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Database size should be non-zero after operations
 	// Note: This might be 0 immediately after creation depending on PebbleDB behavior
 	dbSize := metrics.DatabaseSize()

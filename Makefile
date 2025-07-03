@@ -5,9 +5,9 @@ all: fmt test lint
 
 # Build the binary
 build:
-	@echo "Building proofbox..."
+	@echo "Building pb..."
 	@mkdir -p bin
-	go build -v -o bin/proofbox cmd/proofbox/main.go
+	go build -v -o bin/pb cmd/pb/main.go
 
 # Run tests
 test:
@@ -88,15 +88,25 @@ install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 
-# Run property-based tests with rapid
+# Run property-based tests with rapid (standard: 100 iterations)
 fuzz-rapid:
-	@echo "Running property-based tests with rapid..."
-	go test -v ./pkg/fuzz/...
+	@echo "Running property-based tests with rapid (standard: 100 iterations)..."
+	FUZZ_LEVEL=standard go test -v -rapid.checks=100 ./pkg/fuzz/...
 
-# Run quick property tests for development
+# Run quick property tests for development (20 iterations)
 fuzz-quick:
-	@echo "Running quick property tests..."
-	go test -v -short ./pkg/fuzz/...
+	@echo "Running quick property tests (20 iterations)..."
+	FUZZ_LEVEL=quick go test -v -short -rapid.checks=20 ./pkg/fuzz/...
+
+# Run comprehensive property tests (1000 iterations)
+fuzz-comprehensive:
+	@echo "Running comprehensive property tests (1000 iterations)..."
+	FUZZ_LEVEL=comprehensive go test -v -rapid.checks=1000 -timeout=1h ./pkg/fuzz/...
+
+# Run stress property tests (10000 iterations)
+fuzz-stress:
+	@echo "Running stress property tests (10000 iterations)..."
+	FUZZ_LEVEL=stress go test -v -rapid.checks=10000 -timeout=2h ./pkg/fuzz/...
 
 # Run native Go fuzzing
 fuzz:

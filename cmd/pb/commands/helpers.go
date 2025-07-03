@@ -39,7 +39,20 @@ func openDatabase(path string) (storage.Storage, storage.KeyEncoder, error) {
 func openTree(store storage.Storage, keyEncoder storage.KeyEncoder) (*tree.Tree, error) {
 	config := tree.DefaultTreeConfig()
 	config.MetricsEnabled = false
-	
+
+	tree, err := tree.NewTree(store, keyEncoder, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open tree: %w", err)
+	}
+
+	return tree, nil
+}
+
+// openTreeWithMetrics creates a tree instance with metrics enabled
+func openTreeWithMetrics(store storage.Storage, keyEncoder storage.KeyEncoder) (*tree.Tree, error) {
+	config := tree.DefaultTreeConfig()
+	config.MetricsEnabled = true
+
 	tree, err := tree.NewTree(store, keyEncoder, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open tree: %w", err)

@@ -27,7 +27,7 @@ var (
 var (
 	// ErrKeyNotFound indicates the requested key doesn't exist
 	ErrKeyNotFound = errors.New("jmt: key not found")
-	
+
 	// ErrEmptyValue indicates an empty value was provided where non-empty is required
 	ErrEmptyValue = errors.New("jmt: empty value not allowed")
 

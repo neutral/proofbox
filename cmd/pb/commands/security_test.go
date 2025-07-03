@@ -289,9 +289,9 @@ func TestValidateBatchSize(t *testing.T) {
 
 func TestSecurityConstants(t *testing.T) {
 	// Ensure constants have reasonable values
-	assert.Greater(t, maxImportFileSize, int64(1024*1024), "Import file size should be at least 1MB")
-	assert.Less(t, maxImportFileSize, int64(1024*1024*1024), "Import file size should be less than 1GB")
-	
+	assert.Greater(t, int64(maxImportFileSize), int64(1024*1024), "Import file size should be at least 1MB")
+	assert.Less(t, int64(maxImportFileSize), int64(1024*1024*1024), "Import file size should be less than 1GB")
+
 	assert.Greater(t, maxBatchOperations, 100, "Should allow at least 100 batch operations")
 	assert.Less(t, maxBatchOperations, 1000000, "Batch operations limit should be reasonable")
 }

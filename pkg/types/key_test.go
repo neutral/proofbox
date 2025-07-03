@@ -284,7 +284,9 @@ func BenchmarkKeyExtractNibble(b *testing.B) {
 	key := KeyHash([]byte("benchmark key"))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = key.ExtractNibble(i % MaxTreeDepth)
+		// Ignore error in benchmark - we ensure valid depth with modulo
+		nibble, _ := key.ExtractNibble(i % MaxTreeDepth)
+		_ = nibble
 	}
 }
 

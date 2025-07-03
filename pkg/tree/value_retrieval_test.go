@@ -29,7 +29,7 @@ func TestValueRetrieval(t *testing.T) {
 	// Get the value directly from tree
 	retrieved, err := tr.Get(version, key)
 	require.NoError(t, err)
-	
+
 	// This should pass but currently fails - values come back empty
 	assert.NotNil(t, retrieved, "retrieved value should not be nil")
 	assert.NotEmpty(t, retrieved, "retrieved value should not be empty")
@@ -45,30 +45,30 @@ func TestBatchValueRetrieval(t *testing.T) {
 
 	// Create batch
 	batch := tr.NewBatchTransaction()
-	
+
 	// Add multiple values
 	testData := map[string][]byte{
 		"key1": []byte("value1"),
 		"key2": []byte("value2"),
 		"key3": []byte("value3"),
 	}
-	
+
 	for k, v := range testData {
 		key := types.KeyHash([]byte(k))
 		err := batch.BatchPut(key, v)
 		require.NoError(t, err)
 	}
-	
+
 	// Execute batch
 	version, err := batch.Execute()
 	require.NoError(t, err)
-	
+
 	// Verify all values can be retrieved
 	for k, expectedValue := range testData {
 		key := types.KeyHash([]byte(k))
 		retrieved, err := tr.Get(version, key)
 		require.NoError(t, err)
-		
+
 		assert.NotNil(t, retrieved, "retrieved value for %s should not be nil", k)
 		assert.NotEmpty(t, retrieved, "retrieved value for %s should not be empty", k)
 		assert.Equal(t, expectedValue, retrieved, "retrieved value for %s should match original", k)
@@ -85,7 +85,7 @@ func TestDirectStorageAccess(t *testing.T) {
 	// Test multiple keys to ensure we're testing real storage
 	testData := map[string][]byte{
 		"key1": []byte("value1"),
-		"key2": []byte("value2"), 
+		"key2": []byte("value2"),
 		"key3": []byte("value3"),
 	}
 
@@ -105,12 +105,12 @@ func TestDirectStorageAccess(t *testing.T) {
 	// Verify all values through the reader interface
 	for k, expectedValue := range testData {
 		key := types.KeyHash([]byte(k))
-		
+
 		// First verify through tree.Get
 		retrieved, err := tr.Get(version, key)
 		require.NoError(t, err)
 		assert.Equal(t, expectedValue, retrieved)
-		
+
 		// Also verify we can compute the value hash and load it
 		valueHash := crypto.DefaultHasher.Hash(expectedValue)
 		storedValue, err := reader.LoadValue(valueHash)

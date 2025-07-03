@@ -43,7 +43,7 @@
 //
 // Histogram Metrics:
 //   - jmt_commit_latency_seconds: Commit operation duration
-//   - jmt_lookup_latency_seconds: Lookup operation duration  
+//   - jmt_lookup_latency_seconds: Lookup operation duration
 //   - jmt_proof_generation_latency_seconds: Proof generation time
 //   - jmt_batch_size: Operations per batch
 //   - jmt_proof_size_bytes: Proof size in bytes
@@ -66,8 +66,8 @@
 //
 //	// Main app on :8080
 //	go http.ListenAndServe(":8080", mainHandler)
-//	
-//	// Metrics on :9090  
+//
+//	// Metrics on :9090
 //	go metrics.ServeMetricsHTTP(":9090", true)
 //
 // This allows monitoring systems to scrape metrics without affecting

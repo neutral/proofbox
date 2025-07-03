@@ -22,7 +22,7 @@ type TreeReader struct {
 // Get retrieves a value by key at the specified version
 func (t *Tree) Get(version types.Version, key types.Key) ([]byte, error) {
 	start := time.Now()
-	
+
 	// Validate inputs
 	if err := t.validateVersion(version); err != nil {
 		t.metrics.RecordError("validation")
@@ -63,12 +63,12 @@ func (t *Tree) Get(version types.Version, key types.Key) ([]byte, error) {
 	}
 
 	value, err := reader.Get(key)
-	
+
 	// Record metrics
 	duration := time.Since(start).Seconds()
 	found := (err == nil && value != nil)
 	t.metrics.RecordLookup(duration, found)
-	
+
 	if err != nil {
 		t.metrics.RecordError("storage")
 	}

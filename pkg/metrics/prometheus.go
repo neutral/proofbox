@@ -26,16 +26,16 @@ type PrometheusMetrics struct {
 	batchSize              prometheus.Histogram
 
 	// Gauge metrics
-	treeHeight      prometheus.Gauge
-	treeNodesTotal  prometheus.Gauge
-	versionsStored  prometheus.Gauge
-	dbLiveBytes     prometheus.Gauge
-	proofSizeBytes  prometheus.Histogram
+	treeHeight     prometheus.Gauge
+	treeNodesTotal prometheus.Gauge
+	versionsStored prometheus.Gauge
+	dbLiveBytes    prometheus.Gauge
+	proofSizeBytes prometheus.Histogram
 
 	// Registry for this instance
 	registry *prometheus.Registry
 	factory  promauto.Factory
-	
+
 	// Initialization
 	once sync.Once
 }

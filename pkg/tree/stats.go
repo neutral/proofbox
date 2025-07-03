@@ -19,7 +19,7 @@ func NewTreeStats() *TreeStats {
 // UpdateStats atomically updates all tree statistics
 func (ts *TreeStats) UpdateStats(height, nodeCount, version int64) {
 	ts.height.Store(height)
-	ts.nodeCount.Store(nodeCount) 
+	ts.nodeCount.Store(nodeCount)
 	ts.version.Store(version)
 }
 

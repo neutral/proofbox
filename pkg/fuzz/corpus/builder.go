@@ -12,10 +12,10 @@ import (
 
 // CorpusEntry represents a single test case in the corpus
 type CorpusEntry struct {
-	Name        string                  `json:"name"`
-	Description string                  `json:"description"`
-	Operations  []generators.Operation  `json:"operations"`
-	Tags        []string                `json:"tags"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Operations  []generators.Operation `json:"operations"`
+	Tags        []string               `json:"tags"`
 }
 
 // CorpusBuilder helps create interesting test cases
@@ -46,7 +46,7 @@ func (cb *CorpusBuilder) BuildEdgeCases() {
 		Operations:  []generators.Operation{},
 		Tags:        []string{"edge", "empty"},
 	})
-	
+
 	// Single operation types
 	cb.AddEntry(CorpusEntry{
 		Name:        "single_put",
@@ -56,7 +56,7 @@ func (cb *CorpusBuilder) BuildEdgeCases() {
 		},
 		Tags: []string{"single", "put"},
 	})
-	
+
 	// Put then delete same key
 	key := types.KeyHash([]byte("test-key"))
 	cb.AddEntry(CorpusEntry{
@@ -68,7 +68,7 @@ func (cb *CorpusBuilder) BuildEdgeCases() {
 		},
 		Tags: []string{"edge", "delete"},
 	})
-	
+
 	// Multiple puts to same key
 	cb.AddEntry(CorpusEntry{
 		Name:        "overwrite_key",
@@ -80,7 +80,7 @@ func (cb *CorpusBuilder) BuildEdgeCases() {
 		},
 		Tags: []string{"overwrite", "put"},
 	})
-	
+
 	// Keys with common prefixes (tests internal node sharing)
 	cb.AddEntry(CorpusEntry{
 		Name:        "common_prefix_keys",
@@ -91,7 +91,7 @@ func (cb *CorpusBuilder) BuildEdgeCases() {
 			{Type: generators.OpPut, Key: types.Key{0xAB, 0xCD, 0xEF, 0x02}, Value: []byte("v3")},
 			{Type: generators.OpPut, Key: types.Key{0xAB, 0xCD, 0xEF, 0x03}, Value: []byte("v4")},
 		},
-		Tags: []string{"prefix", "structural-sharing"},
+		Tags: []string{"prefix", "common-keys"},
 	})
 }
 
@@ -100,7 +100,7 @@ func (cb *CorpusBuilder) BuildVersionIsolationCases() {
 	// Version isolation regression test
 	key1 := types.KeyHash([]byte("key1"))
 	key2 := types.KeyHash([]byte("key2"))
-	
+
 	cb.AddEntry(CorpusEntry{
 		Name:        "version_isolation_basic",
 		Description: "Basic version isolation test",
@@ -126,33 +126,33 @@ func (cb *CorpusBuilder) BuildPerformanceCases() {
 			Value: []byte(fmt.Sprintf("batch-value-%d", i)),
 		}
 	}
-	
+
 	cb.AddEntry(CorpusEntry{
 		Name:        "large_batch",
 		Description: "Large batch of put operations",
 		Operations:  ops,
 		Tags:        []string{"performance", "batch"},
 	})
-	
+
 	// Deep tree structure
 	deepOps := make([]generators.Operation, 100)
 	baseKey := make([]byte, 32)
 	for i := range baseKey {
 		baseKey[i] = 0xFF
 	}
-	
+
 	for i := 0; i < 100; i++ {
 		key := make([]byte, 32)
 		copy(key, baseKey)
 		key[31] = byte(i)
-		
+
 		deepOps[i] = generators.Operation{
 			Type:  generators.OpPut,
 			Key:   types.Key(key),
 			Value: []byte{byte(i)},
 		}
 	}
-	
+
 	cb.AddEntry(CorpusEntry{
 		Name:        "deep_tree",
 		Description: "Creates deep tree structure",
@@ -168,7 +168,7 @@ func (cb *CorpusBuilder) BuildSecurityCases() {
 	for i := range maxValue {
 		maxValue[i] = byte(i % 256)
 	}
-	
+
 	cb.AddEntry(CorpusEntry{
 		Name:        "large_values",
 		Description: "Operations with large values",
@@ -178,7 +178,7 @@ func (cb *CorpusBuilder) BuildSecurityCases() {
 		},
 		Tags: []string{"security", "dos", "large-value"},
 	})
-	
+
 	// Adversarial key patterns
 	cb.AddEntry(CorpusEntry{
 		Name:        "adversarial_keys",
@@ -199,21 +199,21 @@ func (cb *CorpusBuilder) Save() error {
 	if err := os.MkdirAll(cb.dir, 0755); err != nil {
 		return fmt.Errorf("failed to create corpus directory: %w", err)
 	}
-	
+
 	// Save each entry as a separate file
 	for i, entry := range cb.entries {
 		filename := filepath.Join(cb.dir, fmt.Sprintf("%03d_%s.json", i, entry.Name))
-		
+
 		data, err := json.MarshalIndent(entry, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal entry %s: %w", entry.Name, err)
 		}
-		
+
 		if err := os.WriteFile(filename, data, 0644); err != nil {
 			return fmt.Errorf("failed to write entry %s: %w", entry.Name, err)
 		}
 	}
-	
+
 	// Create index file
 	indexFile := filepath.Join(cb.dir, "index.json")
 	index := struct {
@@ -225,12 +225,12 @@ func (cb *CorpusBuilder) Save() error {
 		Tags:         cb.collectTags(),
 		Entries:      cb.collectNames(),
 	}
-	
+
 	indexData, err := json.MarshalIndent(index, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal index: %w", err)
 	}
-	
+
 	return os.WriteFile(indexFile, indexData, 0644)
 }
 
@@ -242,7 +242,7 @@ func (cb *CorpusBuilder) collectTags() []string {
 			tagSet[tag] = true
 		}
 	}
-	
+
 	tags := make([]string, 0, len(tagSet))
 	for tag := range tagSet {
 		tags = append(tags, tag)
@@ -266,26 +266,26 @@ func LoadCorpus(dir string) ([]CorpusEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list corpus files: %w", err)
 	}
-	
-	var entries []CorpusEntry
+
+	entries := make([]CorpusEntry, 0, len(files))
 	for _, file := range files {
 		// Skip index file
 		if filepath.Base(file) == "index.json" {
 			continue
 		}
-		
+
 		data, err := os.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %s: %w", file, err)
 		}
-		
+
 		var entry CorpusEntry
 		if err := json.Unmarshal(data, &entry); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal %s: %w", file, err)
 		}
-		
+
 		entries = append(entries, entry)
 	}
-	
+
 	return entries, nil
 }

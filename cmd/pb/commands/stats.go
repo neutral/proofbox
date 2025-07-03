@@ -36,13 +36,13 @@ func runStats(cmd *cobra.Command, args []string) error {
 	}
 
 	// Use latest version if not specified
-	if cmd.Flags().Changed("version") == false {
+	if !cmd.Flags().Changed("version") {
 		version = uint64(tree.GetLatestVersion())
 	}
 
 	// Get tree statistics
 	height, nodeCount, _ := tree.GetStats()
-	
+
 	// Get root hash for the version
 	rootHash, err := tree.GetRootHash(types.Version(version))
 	if err != nil {
@@ -55,11 +55,11 @@ func runStats(cmd *cobra.Command, args []string) error {
 	// Build result
 	result := map[string]interface{}{
 		"tree": map[string]interface{}{
-			"version":      version,
-			"latest":       tree.GetLatestVersion(),
-			"height":       height,
-			"node_count":   nodeCount,
-			"root_hash":    fmt.Sprintf("%x", rootHash[:8]),
+			"version":        version,
+			"latest":         tree.GetLatestVersion(),
+			"height":         height,
+			"node_count":     nodeCount,
+			"root_hash":      fmt.Sprintf("%x", rootHash[:8]),
 			"root_hash_full": fmt.Sprintf("%x", rootHash[:]),
 		},
 	}
@@ -74,23 +74,23 @@ func runStats(cmd *cobra.Command, args []string) error {
 			"batches": metrics.BatchCommits(),
 		},
 		"latency_us": map[string]interface{}{
-			"get_p50": metrics.GetLatencyP50() / 1000,  // Convert ns to μs
+			"get_p50": metrics.GetLatencyP50() / 1000, // Convert ns to μs
 			"get_p99": metrics.GetLatencyP99() / 1000,
 			"put_p50": metrics.PutLatencyP50() / 1000,
 			"put_p99": metrics.PutLatencyP99() / 1000,
 		},
 		"size": map[string]interface{}{
-			"database_bytes": metrics.DatabaseSize(),
-			"database_mb":    float64(metrics.DatabaseSize()) / (1024 * 1024),
+			"database_bytes":  metrics.DatabaseSize(),
+			"database_mb":     float64(metrics.DatabaseSize()) / (1024 * 1024),
 			"live_data_bytes": metrics.LiveDataSize(),
-			"cache_bytes":    metrics.CacheSize(),
-			"cache_mb":       float64(metrics.CacheSize()) / (1024 * 1024),
+			"cache_bytes":     metrics.CacheSize(),
+			"cache_mb":        float64(metrics.CacheSize()) / (1024 * 1024),
 		},
 		"cache": map[string]interface{}{
 			"hit_rate": fmt.Sprintf("%.2f%%", metrics.CacheHitRate()*100),
 		},
 	}
-	
+
 	result["storage"] = storageInfo
 
 	// Add database info

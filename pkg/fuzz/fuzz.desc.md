@@ -71,7 +71,6 @@ The fuzzing infrastructure validates:
 
 **Correctness Properties:**
 - Version isolation (keys visible only in appropriate versions)
-- Structural sharing (unchanged subtrees share nodes)
 - Proof consistency (proofs verify correctly across versions)
 - Root hash determinism (same state produces same hash)
 

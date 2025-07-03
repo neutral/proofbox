@@ -150,7 +150,7 @@ func DecodeNodeKey(buf []byte) (NodeKey, error) {
 func (nk NodeKey) StorageKey() []byte {
 	encoded := EncodeNodeKey(nk)
 	storageKey := make([]byte, len(NodeKeyPrefix)+len(encoded))
-	copy(storageKey, []byte(NodeKeyPrefix))
+	copy(storageKey, NodeKeyPrefix)
 	copy(storageKey[len(NodeKeyPrefix):], encoded)
 	return storageKey
 }

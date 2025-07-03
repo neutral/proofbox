@@ -184,7 +184,7 @@ func newLatencyHistogram() *latencyHistogram {
 
 func (h *latencyHistogram) record(d time.Duration) {
 	h.total.Add(1)
-	
+
 	// Find the appropriate bucket
 	for i, bound := range h.bounds {
 		if d <= bound {
@@ -205,8 +205,8 @@ func (h *latencyHistogram) percentile(p float64) time.Duration {
 	target := uint64(float64(total) * p)
 	var count uint64
 
-	for i, bucket := range h.buckets {
-		count += bucket.Load()
+	for i := range h.buckets {
+		count += h.buckets[i].Load()
 		if count >= target {
 			if i == 0 {
 				return h.bounds[0] / 2
@@ -224,18 +224,18 @@ func (h *latencyHistogram) percentile(p float64) time.Duration {
 // NullMetrics is a no-op implementation of the Metrics interface.
 type NullMetrics struct{}
 
-func (n NullMetrics) GetOperations() uint64     { return 0 }
-func (n NullMetrics) PutOperations() uint64     { return 0 }
-func (n NullMetrics) DeleteOperations() uint64  { return 0 }
-func (n NullMetrics) BatchCommits() uint64      { return 0 }
-func (n NullMetrics) GetLatencyP50() uint64     { return 0 }
-func (n NullMetrics) GetLatencyP99() uint64     { return 0 }
-func (n NullMetrics) PutLatencyP50() uint64     { return 0 }
-func (n NullMetrics) PutLatencyP99() uint64     { return 0 }
-func (n NullMetrics) DatabaseSize() uint64      { return 0 }
-func (n NullMetrics) LiveDataSize() uint64      { return 0 }
-func (n NullMetrics) CacheHitRate() float64     { return 0 }
-func (n NullMetrics) CacheSize() uint64         { return 0 }
+func (n NullMetrics) GetOperations() uint64    { return 0 }
+func (n NullMetrics) PutOperations() uint64    { return 0 }
+func (n NullMetrics) DeleteOperations() uint64 { return 0 }
+func (n NullMetrics) BatchCommits() uint64     { return 0 }
+func (n NullMetrics) GetLatencyP50() uint64    { return 0 }
+func (n NullMetrics) GetLatencyP99() uint64    { return 0 }
+func (n NullMetrics) PutLatencyP50() uint64    { return 0 }
+func (n NullMetrics) PutLatencyP99() uint64    { return 0 }
+func (n NullMetrics) DatabaseSize() uint64     { return 0 }
+func (n NullMetrics) LiveDataSize() uint64     { return 0 }
+func (n NullMetrics) CacheHitRate() float64    { return 0 }
+func (n NullMetrics) CacheSize() uint64        { return 0 }
 
 // Ensure implementations satisfy the Metrics interface
 var (

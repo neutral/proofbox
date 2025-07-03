@@ -18,7 +18,7 @@ JMT achieves excellent storage efficiency through multiple design choices that m
 ### Persistence with Delta Storage
 When updating m out of n leaves (see [SN-010]):
 - Creates O(m · log n) new nodes
-- Unchanged subtrees shared between versions
+- Unchanged subtrees shared between versions (see [Structural Sharing Correctness](../../../reliability/structural-sharing/requirement.md))
 - Storage growth proportional to changes, not state size
 
 ## I/O Optimizations

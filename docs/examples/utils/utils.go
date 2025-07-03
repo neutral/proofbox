@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -67,34 +68,33 @@ func PrintBatchOperation(op string, key []byte, value []byte) {
 // CreateTempStorage creates temporary storage for examples
 func CreateTempStorage(name string) (storage.Storage, func(), error) {
 	tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("proofbox-example-%s", name))
-	
+
 	// Clean up any existing directory
 	os.RemoveAll(tmpDir)
-	
+
 	// Create new directory
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		return nil, nil, err
 	}
-	
+
 	// Create PebbleDB storage using the proper driver
 	opts := &pebblestorage.Options{
 		EnableMetrics: false,
 	}
-	
+
 	store, err := pebblestorage.NewStorage(tmpDir, opts)
 	if err != nil {
 		os.RemoveAll(tmpDir)
 		return nil, nil, err
 	}
-	
+
 	cleanup := func() {
 		store.Close()
 		os.RemoveAll(tmpDir)
 	}
-	
+
 	return store, cleanup, nil
 }
-
 
 // CreateExampleTree creates a tree with some initial data
 func CreateExampleTree(store storage.Storage) (*tree.Tree, error) {
@@ -104,7 +104,7 @@ func CreateExampleTree(store storage.Storage) (*tree.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Add some initial data
 	initialData := map[string]string{
 		"apple":  "fruit",
@@ -113,7 +113,7 @@ func CreateExampleTree(store storage.Storage) (*tree.Tree, error) {
 		"dog":    "animal",
 		"eagle":  "bird",
 	}
-	
+
 	PrintInfo("Creating tree with initial data:")
 	for k, v := range initialData {
 		key := types.KeyHash([]byte(k))
@@ -124,20 +124,20 @@ func CreateExampleTree(store storage.Storage) (*tree.Tree, error) {
 		}
 		PrintKeyValue(fmt.Sprintf("  v%d", version), fmt.Sprintf("%s = %s", k, v))
 	}
-	
+
 	return jmt, nil
 }
 
 // PrintTreeStats prints statistics about the tree
 func PrintTreeStats(jmt *tree.Tree) {
 	latestVersion := jmt.GetLatestVersion()
-	
+
 	PrintSubSection("Tree Statistics")
 	PrintKeyValue("Latest Version", latestVersion)
-	
+
 	// In a real implementation, we'd have a method to iterate keys
 	// For now, we'll just show the version info
-	
+
 	rootHash, err := jmt.GetRootHash(latestVersion)
 	if err == nil {
 		PrintKeyValue("Root Hash", fmt.Sprintf("%x", rootHash[:8])+"...")
@@ -147,22 +147,23 @@ func PrintTreeStats(jmt *tree.Tree) {
 // PrintVersionComparison shows differences between versions
 func PrintVersionComparison(jmt *tree.Tree, v1, v2 types.Version, keys []string) {
 	PrintSubSection(fmt.Sprintf("Comparing Version %d and Version %d", v1, v2))
-	
+
 	for _, k := range keys {
 		key := types.KeyHash([]byte(k))
-		
+
 		val1, err1 := jmt.GetAtVersion(v1, key)
 		val2, err2 := jmt.GetAtVersion(v2, key)
-		
-		if err1 == nil && err2 == nil {
-			if string(val1) == string(val2) {
+
+		switch {
+		case err1 == nil && err2 == nil:
+			if bytes.Equal(val1, val2) {
 				fmt.Printf("  %s: %s%s%s (unchanged)\n", k, ColorGray, val1, ColorReset)
 			} else {
 				fmt.Printf("  %s: %s%s%s → %s%s%s\n", k, ColorRed, val1, ColorReset, ColorGreen, val2, ColorReset)
 			}
-		} else if err1 != nil && err2 == nil {
+		case err1 != nil && err2 == nil:
 			fmt.Printf("  %s: %s(none)%s → %s%s%s\n", k, ColorGray, ColorReset, ColorGreen, val2, ColorReset)
-		} else if err1 == nil && err2 != nil {
+		case err1 == nil && err2 != nil:
 			fmt.Printf("  %s: %s%s%s → %s(deleted)%s\n", k, ColorRed, val1, ColorReset, ColorGray, ColorReset)
 		}
 	}

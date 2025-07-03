@@ -56,8 +56,7 @@ func (n *InternalNode) Hash() types.Hash {
 	for nibble := types.Nibble(0); nibble <= types.MaxNibbleValue; nibble++ {
 		if child, exists := n.children[nibble]; exists {
 			// Include nibble and child hash
-			parts = append(parts, []byte{byte(nibble)})
-			parts = append(parts, child.Hash[:])
+			parts = append(parts, []byte{byte(nibble)}, child.Hash[:])
 		} else {
 			// Use empty hash for missing children
 			parts = append(parts, crypto.EmptyTreeHash[:])

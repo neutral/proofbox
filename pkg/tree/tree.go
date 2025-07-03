@@ -39,19 +39,19 @@ type Tree struct {
 
 	// Metrics
 	metrics metrics.JMTMetrics // Metrics collector
-	
+
 	// Statistics
 	stats *TreeStats // Atomic tree statistics
 }
 
 // TreeConfig holds configuration options
 type TreeConfig struct {
-	CacheSize           int                  // Number of nodes to cache (default: 10000)
-	MaxBatchSize        int                  // Maximum operations per batch (default: 1000)
-	MetricsEnabled      bool                 // Enable metrics collection
-	BatchOptimizer      *BatchOptimizer      // Batch optimization settings
-	UseParallelBatching bool                 // Use parallel batch processing for large batches
-	Metrics             metrics.JMTMetrics   // Custom metrics implementation (optional)
+	CacheSize           int                // Number of nodes to cache (default: 10000)
+	MaxBatchSize        int                // Maximum operations per batch (default: 1000)
+	MetricsEnabled      bool               // Enable metrics collection
+	BatchOptimizer      *BatchOptimizer    // Batch optimization settings
+	UseParallelBatching bool               // Use parallel batch processing for large batches
+	Metrics             metrics.JMTMetrics // Custom metrics implementation (optional)
 }
 
 // DefaultTreeConfig returns default configuration
@@ -109,13 +109,14 @@ func NewTree(db storage.Storage, keyEncoder storage.KeyEncoder, config TreeConfi
 
 	// Initialize metrics
 	var metricsCollector metrics.JMTMetrics
-	if config.Metrics != nil {
+	switch {
+	case config.Metrics != nil:
 		// Use provided metrics implementation
 		metricsCollector = config.Metrics
-	} else if config.MetricsEnabled {
+	case config.MetricsEnabled:
 		// Create Prometheus metrics only if explicitly enabled
 		metricsCollector = metrics.NewPrometheusMetrics()
-	} else {
+	default:
 		// Default to no-op metrics
 		metricsCollector = metrics.NoOpMetrics{}
 	}
@@ -392,7 +393,7 @@ func (t *Tree) GetAtVersion(version types.Version, key types.Key) ([]byte, error
 func (t *Tree) CommitVersion(version types.Version) error {
 	// Start timing for metrics
 	start := time.Now()
-	
+
 	t.writeMu.Lock()
 	defer t.writeMu.Unlock()
 
@@ -424,11 +425,11 @@ func (t *Tree) CommitVersion(version types.Version) error {
 
 		// Update version manager
 		err := t.versionManager.Commit(version, rootHash, 0)
-		
+
 		// Record metrics for empty commit
 		duration := time.Since(start).Seconds()
 		t.metrics.RecordCommit(duration, 0)
-		
+
 		return err
 	}
 
@@ -460,7 +461,6 @@ func (t *Tree) CommitVersion(version types.Version) error {
 	nodeCodec := &codec.NodeCodec{}
 
 	// Write all new nodes
-	dbWrites := 0
 	for _, nodeWrite := range batch.NewNodes {
 		data, err := nodeCodec.EncodeNode(nodeWrite.Node)
 		if err != nil {
@@ -473,7 +473,6 @@ func (t *Tree) CommitVersion(version types.Version) error {
 			t.metrics.RecordError("storage")
 			return fmt.Errorf("failed to write node: %w", err)
 		}
-		dbWrites++
 		t.metrics.RecordDBWrite()
 
 		// If it's a leaf node, also store the value
@@ -483,7 +482,6 @@ func (t *Tree) CommitVersion(version types.Version) error {
 				t.metrics.RecordError("storage")
 				return fmt.Errorf("failed to write value: %w", err)
 			}
-			dbWrites++
 			t.metrics.RecordDBWrite()
 		}
 	}
@@ -494,7 +492,6 @@ func (t *Tree) CommitVersion(version types.Version) error {
 		t.metrics.RecordError("storage")
 		return fmt.Errorf("failed to write root: %w", err)
 	}
-	dbWrites++
 	t.metrics.RecordDBWrite()
 
 	// Prepare in-memory state updates (but don't apply yet)
@@ -537,11 +534,11 @@ func (t *Tree) CommitVersion(version types.Version) error {
 	// Record commit metrics
 	duration := time.Since(start).Seconds()
 	t.metrics.RecordCommit(duration, len(batch.NewNodes))
-	
+
 	// Update tree statistics atomically
 	t.stats.UpdateNodeCount(nodeCount)
 	t.stats.UpdateVersion(int64(version))
-	
+
 	// Update metrics from atomic stats
 	t.metrics.UpdateTreeNodeCount(int(t.stats.GetNodeCount()))
 	t.metrics.UpdateVersionCount(int(t.stats.GetVersion()))

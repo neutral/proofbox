@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/storage"
+	pebblestorage "github.com/neutral/proofbox/pkg/storage/pebble"
 	"github.com/neutral/proofbox/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,7 +96,8 @@ func TestBatchTransaction(t *testing.T) {
 		require.NoError(t, err)
 
 		batch := tree.NewBatchTransaction()
-		batch.BatchPut(types.KeyHash([]byte("new-key")), []byte("new-value"))
+		err = batch.BatchPut(types.KeyHash([]byte("new-key")), []byte("new-value"))
+		require.NoError(t, err)
 
 		// Force an error by using an invalid key
 		invalidKey := types.Key{}
@@ -105,7 +106,8 @@ func TestBatchTransaction(t *testing.T) {
 
 		// The batch should still be executable with valid operations
 		batch.Clear()
-		batch.BatchPut(types.KeyHash([]byte("good-key")), []byte("good-value"))
+		err = batch.BatchPut(types.KeyHash([]byte("good-key")), []byte("good-value"))
+		require.NoError(t, err)
 
 		version, err := batch.Execute()
 		require.NoError(t, err)
@@ -129,7 +131,10 @@ func TestBatchTransaction(t *testing.T) {
 				for j := 0; j < opsPerGoroutine; j++ {
 					key := types.KeyHash([]byte(fmt.Sprintf("key-%d-%d", idx, j)))
 					value := []byte(fmt.Sprintf("value-%d-%d", idx, j))
-					batch.BatchPut(key, value)
+					if err := batch.BatchPut(key, value); err != nil {
+						errors[idx] = err
+						return
+					}
 				}
 
 				results[idx], errors[idx] = batch.Execute()
@@ -274,7 +279,8 @@ func TestBatchValidation(t *testing.T) {
 
 	t.Run("Valid Batch", func(t *testing.T) {
 		updater := NewTreeUpdater(tree, 0, 1)
-		updater.Put(types.KeyHash([]byte("key1")), []byte("value1"))
+		_, err = updater.Put(types.KeyHash([]byte("key1")), []byte("value1"))
+		require.NoError(t, err)
 
 		batch, err := updater.BuildUpdateBatch()
 		require.NoError(t, err)
@@ -305,11 +311,12 @@ func TestBatchValidation(t *testing.T) {
 
 		// Create internal node with future child
 		internal := NewInternalNode(1)
-		internal.SetChild(0, types.Child{
+		err = internal.SetChild(0, types.Child{
 			Hash:    types.Hash{1, 2, 3},
 			Version: 99, // Future version
 			IsLeaf:  true,
 		})
+		require.NoError(t, err)
 
 		batch := &UpdateBatch{
 			NewRootHash: types.Hash{},
@@ -350,9 +357,13 @@ func BenchmarkBatchOperations(b *testing.B) {
 			for j := 0; j < 100; j++ {
 				key := types.KeyHash([]byte(fmt.Sprintf("bench-key-%d-%d", i, j)))
 				value := []byte(fmt.Sprintf("bench-value-%d-%d", i, j))
-				batch.BatchPut(key, value)
+				if err := batch.BatchPut(key, value); err != nil {
+					b.Fatal(err)
+				}
 			}
-			batch.Execute()
+			if _, err := batch.Execute(); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 
@@ -365,13 +376,20 @@ func BenchmarkBatchOperations(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			version, _ := tree2.BeginVersion()
+			version, err := tree2.BeginVersion()
+			if err != nil {
+				b.Fatal(err)
+			}
 			for j := 0; j < 200; j++ { // Larger batch to trigger parallel
 				key := types.KeyHash([]byte(fmt.Sprintf("parallel-key-%d-%d", i, j)))
 				value := []byte(fmt.Sprintf("parallel-value-%d-%d", i, j))
-				tree2.PutVersioned(version, key, value)
+				if err := tree2.PutVersioned(version, key, value); err != nil {
+					b.Fatal(err)
+				}
 			}
-			tree2.CommitVersion(version)
+			if err := tree2.CommitVersion(version); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 
@@ -391,14 +409,20 @@ func BenchmarkBatchOperations(b *testing.B) {
 			for j := 0; j < 100; j++ {
 				key := types.KeyHash([]byte(fmt.Sprintf("opt-key-%d-%d", i, j)))
 				value := []byte(fmt.Sprintf("opt-value-%d-%d", i, j))
-				batch.BatchPut(key, value)
+				if err := batch.BatchPut(key, value); err != nil {
+					b.Fatal(err)
+				}
 
 				// Add some duplicates to test deduplication
 				if j%10 == 0 {
-					batch.BatchPut(key, value)
+					if err := batch.BatchPut(key, value); err != nil {
+						b.Fatal(err)
+					}
 				}
 			}
-			batch.Execute()
+			if _, err := batch.Execute(); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 }

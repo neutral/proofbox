@@ -190,12 +190,13 @@ func executeReplCommand(ctx *replContext, line string) error {
 		return replStats(ctx)
 
 	case "version":
-		if len(parts) == 1 {
+		switch {
+		case len(parts) == 1:
 			fmt.Printf("Current version: %d\n", ctx.version)
-		} else if parts[1] == "latest" {
+		case parts[1] == "latest":
 			ctx.version = ctx.tree.GetLatestVersion()
 			fmt.Printf("Switched to latest version: %d\n", ctx.version)
-		} else {
+		default:
 			var v uint64
 			if _, err := fmt.Sscanf(parts[1], "%d", &v); err != nil {
 				return fmt.Errorf("invalid version number: %s", parts[1])
@@ -286,7 +287,7 @@ func replRoot(ctx *replContext) error {
 
 func replProve(ctx *replContext, keyStr string) error {
 	key := types.KeyHash([]byte(keyStr))
-	
+
 	// Create reader for the specified version
 	reader, err := ctx.tree.Reader(ctx.version)
 	if err != nil {
@@ -300,7 +301,7 @@ func replProve(ctx *replContext, keyStr string) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate proof: %w", err)
 	}
-	
+
 	fmt.Printf("Proof for key '%s' at version %d:\n", keyStr, ctx.version)
 	fmt.Printf("  Type: %s\n", proofTypeToString(merkleProof.Type))
 	if merkleProof.Type == proof.ProofTypeInclusion {
@@ -328,7 +329,7 @@ func replStats(ctx *replContext) error {
 	fmt.Printf("\nTree Statistics:\n")
 	fmt.Printf("  Height: %d\n", height)
 	fmt.Printf("  Node count: %d\n", nodeCount)
-	
+
 	// Note: Storage metrics not available in REPL context without access to storage
 	fmt.Printf("\n(Run 'pb stats' for detailed storage metrics)\n")
 	return nil
@@ -339,12 +340,12 @@ func replBatch(ctx *replContext, filename string) error {
 	if err := validatePath(filename); err != nil {
 		return fmt.Errorf("invalid batch file path: %w", err)
 	}
-	
+
 	// Check file size
 	if err := validateFileSize(filename, maxImportFileSize); err != nil {
 		return fmt.Errorf("batch file too large: %w", err)
 	}
-	
+
 	// Read batch file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -384,7 +385,7 @@ func replExportKeys(ctx *replContext, filename string) error {
 	fmt.Println("Enter keys to export (one per line, empty line to finish):")
 	var keys []string
 	scanner := bufio.NewScanner(os.Stdin)
-	
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -462,7 +463,7 @@ func replImport(ctx *replContext, filename string) error {
 	if strings.HasSuffix(filename, ".csv") {
 		// CSV format
 		csvReader := csv.NewReader(file)
-		
+
 		// Read header
 		header, err := csvReader.Read()
 		if err != nil {
@@ -508,7 +509,7 @@ func replImport(ctx *replContext, filename string) error {
 	for _, entry := range entries {
 		key := types.KeyHash([]byte(entry.Key))
 		value := []byte(entry.Value)
-		
+
 		if entry.ValueHex != "" {
 			var err error
 			value, err = hex.DecodeString(entry.ValueHex)
