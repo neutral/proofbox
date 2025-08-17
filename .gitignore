@@ -21,6 +21,7 @@ repomix-output.txt
 # Go build cache
 go.work
 go.work.sum
+.gocache/
 
 # Dependency directories
 vendor/
@@ -49,3 +50,6 @@ coverage.html
 *.out
 coverage.txt
 coverage.html
+
+# Fuzzing corpus data (generated)
+/testdata/fuzz/corpus/

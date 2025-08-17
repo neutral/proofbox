@@ -1,4 +1,4 @@
-.PHONY: all build test lint fmt clean coverage bench help fuzz fuzz-rapid fuzz-quick
+.PHONY: all build test lint fmt clean coverage bench help fuzz fuzz-one fuzz-rapid fuzz-quick
 
 # Default target
 all: fmt test lint
@@ -106,27 +106,47 @@ install-tools:
 # Run property-based tests with rapid (standard: 100 iterations)
 fuzz-rapid:
 	@echo "Running property-based tests with rapid (standard: 100 iterations)..."
-	FUZZ_LEVEL=standard go test -v -rapid.checks=100 ./pkg/fuzz/...
+	@mkdir -p $(LOCAL_GOCACHE)
+	FUZZ_LEVEL=standard GOCACHE=$(PWD)/$(LOCAL_GOCACHE) go test -v ./pkg/fuzz/properties/... ./pkg/fuzz/performance/... -rapid.checks=100
 
 # Run quick property tests for development (20 iterations)
 fuzz-quick:
 	@echo "Running quick property tests (20 iterations)..."
-	FUZZ_LEVEL=quick go test -v -short -rapid.checks=20 ./pkg/fuzz/...
+	@mkdir -p $(LOCAL_GOCACHE)
+	FUZZ_LEVEL=quick GOCACHE=$(PWD)/$(LOCAL_GOCACHE) go test -v -short ./pkg/fuzz/properties/... ./pkg/fuzz/performance/... -rapid.checks=20
 
 # Run comprehensive property tests (1000 iterations)
 fuzz-comprehensive:
 	@echo "Running comprehensive property tests (1000 iterations)..."
-	FUZZ_LEVEL=comprehensive go test -v -rapid.checks=1000 -timeout=1h ./pkg/fuzz/...
+	@mkdir -p $(LOCAL_GOCACHE)
+	FUZZ_LEVEL=comprehensive GOCACHE=$(PWD)/$(LOCAL_GOCACHE) go test -v -timeout=1h ./pkg/fuzz/properties/... ./pkg/fuzz/performance/... -rapid.checks=1000
 
 # Run stress property tests (10000 iterations)
 fuzz-stress:
 	@echo "Running stress property tests (10000 iterations)..."
-	FUZZ_LEVEL=stress go test -v -rapid.checks=10000 -timeout=2h ./pkg/fuzz/...
+	@mkdir -p $(LOCAL_GOCACHE)
+	FUZZ_LEVEL=stress GOCACHE=$(PWD)/$(LOCAL_GOCACHE) go test -v -timeout=2h ./pkg/fuzz/properties/... ./pkg/fuzz/performance/... -rapid.checks=10000
 
 # Run native Go fuzzing
+FUZZTIME ?= 2m
+LOCAL_GOCACHE ?= .gocache
+
 fuzz:
 	@echo "Running native Go fuzzing..."
-	go test -fuzz=. -fuzztime=2m ./pkg/fuzz/...
+ifdef FUZZ
+	@echo "Fuzz target: $(FUZZ) for $(FUZZTIME)"
+	@mkdir -p $(LOCAL_GOCACHE)
+	GOCACHE=$(PWD)/$(LOCAL_GOCACHE) go test -run=^$$ -fuzz=$(FUZZ) -fuzztime=$(FUZZTIME) ./pkg/fuzz
+else
+	@echo "No FUZZ specified; running both targets for 1m each"
+	$(MAKE) --no-print-directory fuzz-one FUZZ=FuzzTreeOperations FUZZTIME=1m LOCAL_GOCACHE=$(LOCAL_GOCACHE)
+	$(MAKE) --no-print-directory fuzz-one FUZZ=FuzzProofGeneration FUZZTIME=1m LOCAL_GOCACHE=$(LOCAL_GOCACHE)
+endif
+
+fuzz-one:
+	@echo "Fuzz target: $(FUZZ) for $(FUZZTIME)"
+	@mkdir -p $(LOCAL_GOCACHE)
+	GOCACHE=$(PWD)/$(LOCAL_GOCACHE) go test -run=^$$ -fuzz=$(FUZZ) -fuzztime=$(FUZZTIME) ./pkg/fuzz
 
 # Show help
 help:
@@ -146,9 +166,11 @@ help:
 	@echo "  make bench-pkg     - Run only package-level benchmarks"
 	@echo "  make bench-validate - Validate performance targets"
 	@echo "  make bench-report  - Generate performance report"
-	@echo "  make fuzz          - Run native Go fuzzing (2 minutes)"
-	@echo "  make fuzz-rapid    - Run property tests with rapid (1000 checks)"
-	@echo "  make fuzz-quick    - Run quick property tests (100 checks)"
+	@echo "  make fuzz          - Run native Go fuzzing (set FUZZ=FuzzName to target one)"
+	@echo "  make fuzz-rapid    - Run property tests with rapid (100 checks)"
+	@echo "  make fuzz-quick    - Run quick property tests (20 checks)"
+	@echo "  make fuzz-comprehensive - Run comprehensive property tests (1000 checks)"
+	@echo "  make fuzz-stress   - Run stress property tests (10000 checks)"
 	@echo "  make lint          - Run linters"
 	@echo "  make fmt           - Format code"
 	@echo "  make clean         - Clean build artifacts"
