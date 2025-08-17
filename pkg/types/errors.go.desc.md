@@ -83,4 +83,4 @@ Different error categories warrant different recovery strategies:
 - **Transaction**: May retry or require application-level handling
 
 ## Consistency with Specification
-These error types directly implement the error categories defined in `/blueprint/global/specs/error-handling.md`, ensuring consistency between specification and implementation.
+These error types directly implement the error categories defined in `../_blueprint/_specs/error-handling.md`, ensuring consistency between specification and implementation.

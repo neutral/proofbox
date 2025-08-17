@@ -172,6 +172,6 @@ As ProofBox grows, new example categories can be added:
 
 After exploring these examples:
 - Review the [pkg/tree](../../pkg/tree) package documentation for API details
-- Check the [blueprint/steps](../../blueprint/steps) directory for implementation progress
+- Check the [steps](../../steps) directory for implementation progress
 - See [docs/](../) for architectural documentation
 - Run the test suite to see more usage patterns

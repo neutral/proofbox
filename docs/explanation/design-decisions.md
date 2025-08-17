@@ -35,7 +35,7 @@ ProofBox is implemented in Go rather than Rust, C++, or other systems languages.
 Use only Internal and Leaf nodes - no extension nodes, no optimizations for common prefixes.
 
 ### Rationale
-From ADR-001:
+From the two-node-types decision:
 - **Simplicity**: Two node types are easier to reason about
 - **Fewer Bugs**: Each node type adds complexity and edge cases
 - **Cleaner Interface**: Uniform operations on all nodes
@@ -72,7 +72,7 @@ Use PebbleDB as the primary storage backend instead of RocksDB, LevelDB, or cust
 Two-tier architecture where tree nodes store only hashes, with values stored separately.
 
 ### Rationale
-From ADR-010:
+From the value storage separation decision:
 - **Memory Efficiency**: Can traverse tree without loading values
 - **Cache Optimization**: More nodes fit in memory
 - **Flexibility**: Values can be compressed/encrypted independently
@@ -102,7 +102,7 @@ storage.Put(valueKey(hash), actualValue)
 Build thread safety directly into node types using `sync.RWMutex`.
 
 ### Rationale
-From ADR-005:
+From the thread-safe nodes decision:
 - **Safety by Default**: Impossible to have data races
 - **Simplified API**: No external synchronization needed
 - **Read Optimization**: Multiple concurrent readers
@@ -119,7 +119,7 @@ From ADR-005:
 Avoid panics in library code - return errors as values, with one critical exception.
 
 ### Rationale
-From ADR-007:
+From the no-panics decision:
 - **Reliability**: Library should rarely crash host application
 - **Explicit Handling**: Callers decide how to handle errors
 - **Debugging**: Clear error chains and context
@@ -156,7 +156,7 @@ ProofBox panics in exactly one scenario: when storage has been successfully comm
 Versions have explicit states: Pending → Committed or Aborted.
 
 ### Rationale
-From ADR-013:
+From the version lifecycle decision:
 - **Clear Semantics**: No ambiguity about version state
 - **Resource Management**: Know when to clean up
 - **Consistency**: Can't read from uncommitted versions

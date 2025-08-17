@@ -26,4 +26,4 @@ Fixed-size encoding was chosen because:
 4. Enables extremely fast encode/decode operations
 5. Predictable memory layout for cache optimization
 
-The version is not included as it's provided externally during tree operations (see ADR-003).
+The version is not included as it's provided externally during tree operations (see version-not-serialized decision).
